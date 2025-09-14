@@ -9,6 +9,8 @@
    :maxdepth: 2
    :caption: Contents:
 
+   design
+
 
 Indices and tables
 ==================
