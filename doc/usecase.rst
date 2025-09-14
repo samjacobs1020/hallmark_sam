@@ -83,6 +83,25 @@ Each worktree stays isolated by branch, so staged state and commits do
 not interfere.
 
 
+4. Python: Programmatic Repository Updates
+------------------------------------------
+
+David uses the Python API for scripted ingest against an on-disk
+repository::
+
+    from hallmark import Repo
+
+    repo = Repo.open("obs")
+    info = repo.info()
+    print(info.local_path, info.worktree_path)
+
+    for y in range(2000,2026,5):
+        repo.add(f"{{site}}/{y}/{{day:d}}.fits")  # escape {{ and }}
+    repo.commit("Nightly ingest")
+
+This workflow is suitable for finer control of data ingest.
+
+
 ..  |hallmark| replace:: ``hallmark``
 
 ..  _hallmark: https://github.com/l6a/hallmark
