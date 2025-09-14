@@ -5,3 +5,6 @@ requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
 name = "hallmark"
 dynamic = ["version"]
 license = "Apache-2.0"
+
+[tool.setuptools.packages.find]
+where = ["mod"]
