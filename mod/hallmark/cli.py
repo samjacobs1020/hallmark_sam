@@ -18,6 +18,11 @@
 
 import click
 
+from click   import ClickException
+from git.exc import GitError
+
+from . import Repo
+
 
 @click.group()
 @click.version_option()
@@ -27,3 +32,18 @@ def hallmark():
     Hallmark is a lightweight package designed to version control and
     manage data products in a complex workflow.
     """
+
+
+@hallmark.command(short_help="Initialize a hallmark repository.")
+@click.argument("path")
+def init(path):
+    """Initialize a hallmark repository at PATH.
+
+    If PATH ends with `.hm`, a bare repository is created.
+    Otherwise, a `.hm` directory is created inside PATH.
+    """
+    try:
+        Repo.init(path)
+    except GitError as e:
+        raise ClickException(
+            f'Failed to initialize hallmark repository at "{path}": {e}')
