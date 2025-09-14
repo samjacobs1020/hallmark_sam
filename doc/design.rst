@@ -88,6 +88,31 @@ be attached to one repository to support parallel data transformations
 and branch-isolated workflows.
 
 
+Repository
+----------
+
+|hallmark|_ supports three repository forms with the same internal
+``Dothm`` data model:
+
+1.  standard repository:::
+
+        "repo/.hm/" <--- Dothm
+         ^
+         |
+         +-- Worktree
+
+2.  bare repository:::
+
+        "repo.hm/" <--- Dothm
+
+3.  linked repository:::
+
+        "repo/.hm.yml" <--- YAML file, pointing
+         ^    |             to a different
+         |    +-----------> "repo.hm/"
+         +-- Worktree
+
+
 ..  |hallmark| replace:: ``hallmark``
 
 ..  _hallmark: https://github.com/l6a/hallmark
