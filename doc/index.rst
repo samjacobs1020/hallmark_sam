@@ -10,6 +10,7 @@
     :caption: Contents:
 
     design
+    usecase
 
 
 Indices and tables
