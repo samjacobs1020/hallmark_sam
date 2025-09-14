@@ -50,6 +50,10 @@ It has three architecture components with different responsibilities:
 
 The data flow can be summarized as::
 
+                Repo
+     ____________/\____________
+    /                          \
+
     State ---persist-------+
       ^                    |
       |                    |
@@ -77,29 +81,29 @@ Currently, |hallmark|_ has two built-in APIs:
     example, in-memory workflows may omit both).
 
 2.  CLI:
-    each ``hallmark ...`` command loads ``State`` from a discovered
+    python features wrapped by ``click``.
+    Each ``hallmark ...`` command loads ``State`` from a discovered
     ``Dothm`` repository, executes the requested operation, then
     writes staged state updates back to ``Dothm`` before exit.
     In this mode, ``State`` is short-lived and ``Dothm`` is required.
 
-``Worktree`` follows the same idea as `git worktree
-<https://git-scm.com/docs/git-worktree>`_: multiple working trees can
-be attached to one repository to support parallel data transformations
-and branch-isolated workflows.
+``Worktree`` follows the same idea as
+`git worktree <https://git-scm.com/docs/git-worktree>`_:
+multiple working trees can be attached to one repository to support
+parallel data transformations and branch-isolated workflows.
 
 
-Repository
-----------
+Repository ``Repo``
+-------------------
 
 |hallmark|_ supports three repository forms with the same internal
 ``Dothm`` data model:
 
 1.  standard repository:::
 
+         +--- Worktree
+	 v
         "repo/.hm/" <--- Dothm
-         ^
-         |
-         +-- Worktree
 
 2.  bare repository:::
 
@@ -107,10 +111,11 @@ Repository
 
 3.  linked repository:::
 
-        "repo/.hm.yml" <--- YAML file, pointing
-         ^    |             to a different
-         |    +-----------> "repo.hm/"
-         +-- Worktree
+         +--- Worktree
+	 v
+        "repo/.hm.yml" <----YAML file, pointing
+              |             to a different
+              +-----------> "repo.hm/"
 
 
 ..  |hallmark| replace:: ``hallmark``
