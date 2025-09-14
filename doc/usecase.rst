@@ -62,6 +62,27 @@ The commit updates the same bare repository that owns the linked
 worktree.
 
 
+3. CLI: Branch-Isolated Analysis with Multiple Worktrees
+--------------------------------------------------------
+
+Carol wants to manage data from multiple simultaneous observations
+without mixing data.
+She creates a new branch and attach a second worktree to it::
+
+    hallmark branch obs2
+    hallmark worktree add remote:/data/obs obs2
+
+She lists linked worktrees and continue on the new branch::
+
+    hallmark worktree list
+    hallmark status
+    hallmark add "{site}/{year:d}/{day:d}.fits"
+    hallmark commit -m "Observation ingest on branch obs2"
+
+Each worktree stays isolated by branch, so staged state and commits do
+not interfere.
+
+
 ..  |hallmark| replace:: ``hallmark``
 
 ..  _hallmark: https://github.com/l6a/hallmark
