@@ -1,0 +1,6 @@
+[build-system]
+requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
+
+[project]
+name = "hallmark"
+dynamic = ["version"]
