@@ -34,3 +34,6 @@ class State:
     data:   pd.DataFrame = field(
         default_factory=lambda: pd.DataFrame(columns=["sha1", "path"])
     )
+
+    def update(self, pf):
+        self.data = pd.concat([self.data, pf]).drop_duplicates()

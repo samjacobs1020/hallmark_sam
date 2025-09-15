@@ -17,9 +17,10 @@ from dataclasses import dataclass
 from typing      import Optional
 from pathlib     import Path
 
-from .state    import State
-from .dothm    import Dothm
-from .worktree import Worktree
+from .state      import State
+from .dothm      import Dothm
+from .worktree   import Worktree
+from .paraframe  import ParaFrame
 
 
 @dataclass(init=False)
@@ -54,3 +55,16 @@ class Repo:
         Dothm.init(dothm_path).dump(State())
         worktree_path and Worktree.init(worktree_path)
         return cls(path)
+
+    def add(self, fstr: str) -> ParaFrame:
+        if self.worktree is None:
+            raise RuntimeError("cannot add files in a bare repository without a worktree")
+
+        from contextlib import chdir
+        with chdir(self.worktree):
+            pf = ParaFrame(fstr)
+
+        self.state.update(pf)
+        self.dothm.dump(self.state)
+
+        return pf
