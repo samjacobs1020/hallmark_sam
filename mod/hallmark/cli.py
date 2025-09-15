@@ -60,3 +60,18 @@ def info():
 
     click.echo(f'dot-hallmark repo: "{repo.dothm.path}"')
     click.echo(f'hallmark worktree: "{repo.worktree}"')
+
+
+@hallmark.command(short_help="Add files to hallmark index.")
+@click.argument("fstring")
+def add(fstring):
+    """Add files discovered via a Python format string to the hallmark index.
+
+    This is analogous to `git add FILE`, which adds file contents to
+    the "index" (also known as the "staging area").
+    """
+    repo = Repo(".")
+    pf   = repo.add(fstring)
+
+    click.echo("Changes to be committed")
+    click.echo(pf.path.to_string(index=False, header=False))
