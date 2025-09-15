@@ -64,6 +64,7 @@ See https://l6a.github.io/hallmark/ for `hallmark` usage.
         self.dump_yml(state.config, "config")
         self.dump_yml(state.meta,   "meta")
         self.dump_tsv(state.data,   "data")
+        self.index.add(["config.yml", "meta.yml", "data.tsv"])
 
     def load_yml(self, stem: Path | str) -> dict:
         with open((self.path/stem).with_suffix(".yml"), "r") as f:

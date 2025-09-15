@@ -73,7 +73,6 @@ class Repo:
         if not isinstance(msg, str) or not msg.strip():
             raise ValueError("commit message must be a non-empty string")
 
-        self.dothm.index.add(["config.yml", "meta.yml", "data.tsv"])
         if allow_empty or self.dothm.index.diff("HEAD"):
             self.dothm.index.commit(msg)
             return True
