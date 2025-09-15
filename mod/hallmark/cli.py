@@ -75,3 +75,14 @@ def add(fstring):
 
     click.echo("Changes to be committed")
     click.echo(pf.path.to_string(index=False, header=False))
+
+
+@hallmark.command(short_help="Commit changes to the repository.")
+@click.option("-m", "message", required=True)
+def commit(message):
+    """Commit changes in the index to the hallmark repository.
+
+    This is analogous to `git commit -m MESSAGE`.
+    """
+    repo = Repo(".")
+    repo.commit(message)
