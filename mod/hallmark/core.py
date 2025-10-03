@@ -108,7 +108,7 @@ def ParaFrame(fmt, *args, debug=False, **kwargs):
             break
         except KeyError as e:
             k = e.args[0]
-            pattern = re.sub(r'\{'+k+':?.*?\}', '{'+k+':s}', pattern)
+            pattern = re.sub(r'\{'+k+':?.*?\\}', '{'+k+':s}', pattern)
             kwargs[e.args[0]] = '*'
 
     # Obtain list of files based on the glob pattern
