@@ -19,7 +19,7 @@ from glob import glob
 import re
 import parse
 import pandas as pd
-
+import numpy as np
 
 def filter(self, **kwargs):
     """Filter a pandas ``DataFrame`` by matching column values.
@@ -44,9 +44,9 @@ def filter(self, **kwargs):
     mask = [False] * len(self)
     for k, v in kwargs.items():
         if isinstance(v, (tuple, list)):
-            mask |= self[k].isin(v)
+            mask |= np.isin(np.array(self[k]),np.array(v))
         else:
-            mask |= self[k] == v
+            mask |= np.array(self[k]) == v
     return self[mask]
 
 

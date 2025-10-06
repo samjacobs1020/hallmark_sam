@@ -18,17 +18,18 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='hallmark',
-    version='0.1.0',
-    url='https://github.com/hallmarksrc/hallmark',
-    author='Chi-kwan Chan',
-    author_email='chanc@arizona.edu',
-    description='Reproducibility is the hallmark of the scientific method',
-    packages=find_packages('mod'),
-    package_dir={'': 'mod'},
-    python_requires='>=3.6', # `hallmark` uses python3's f-string and typing
+    name="hallmark",
+    version="0.1.0",
+    url="https://github.com/hallmarksrc/hallmark",
+    author="Chi-kwan Chan",
+    author_email="chanc@arizona.edu",
+    description="Reproducibility is the hallmark of the scientific method",
+    packages=find_packages("mod"),
+    package_dir={"": "mod"},
+    python_requires=">=3.6",  # `hallmark` uses python3's f-string and typing
     install_requires=[
-        'pandas',
-        'parse',
+        "numpy",
+        "pandas",
+        "parse",
     ],
 )
