@@ -4,10 +4,11 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: [ "main" , "ci_pipeline" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main" , "ci_pipeline"]
 
 jobs:
   build:
