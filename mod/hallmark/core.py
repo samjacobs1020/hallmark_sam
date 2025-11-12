@@ -22,6 +22,16 @@ import pandas as pd
 import numpy as np
 
 class ParaFrame(pd.DataFrame):
+    """
+    A subclass of :class:`pandas.DataFrame` with added methods for
+    parameterized file discovery and filtering.
+
+    ``ParaFrame`` instances behave like ordinary DataFrames but add:
+
+    * ``parse``: a classmethod that builds a table of file paths and parsed
+      parameters from a format pattern (using ``glob`` + ``parse``).
+    * ``__call__``/``filter``: convenience filtering by column values.
+    """
     @property
     def _constructor(self):
         return ParaFrame
@@ -30,11 +40,13 @@ class ParaFrame(pd.DataFrame):
         return self.filter(**kwds)
     
     def filter(self, **kwargs):
-        """Filter a pandas ``DataFrame`` by matching column values.
+        """
+        Filter a pandas ``DataFrame`` by matching column values.
 
-        This function is monkey-patched onto :class:`pandas.DataFrame` as
-        ``__call__``.
-            It allow direct filtering of DataFrames with keyword arguments.
+        This function utlizes provided **kwargs to filter an existing
+        ``ParaFrame`` by masking based on column values. Filtering supports 
+        single- and multi-conditioned queries, returning rows that satisfy 
+        any of the provided conditions. 
 
         Args:
          **kwargs: Arbitrary keyword arguments specifying column names
@@ -47,7 +59,6 @@ class ParaFrame(pd.DataFrame):
         Returns:
          pandas.DataFrame: A filtered DataFrame containing only rows
              that match the given conditions.
-
         """
         mask = [False] * len(self)
         for k, v in kwargs.items():
@@ -59,7 +70,8 @@ class ParaFrame(pd.DataFrame):
 
     @classmethod
     def parse(cls, fmt, *args, debug=False, **kwargs):
-        """Construct a ``ParaFrame`` by parsing file paths that match a pattern.
+        """
+        Construct a ``ParaFrame`` by parsing file paths that match a pattern.
 
         This function searches for files whose names match a formatted
         string pattern.
@@ -94,18 +106,16 @@ class ParaFrame(pd.DataFrame):
            path               run parameter
         0  data/run1_p10.csv  1   10
         1  data/run2_p20.csv  2   20
-
         """
         pmax = len(fmt) // 3  # to specify a parameter, we need at least
-                          # three characters '{p}'; the maximum number
-                          # of possible parameters is `len(fmt) // 3`.
+                              # three characters '{p}'; the maximum number
+                              # of possible parameters is `len(fmt) // 3`.
 
-                        # Construct the glob pattern for search files
+        # Construct the glob pattern for search files
         pattern = fmt
         for i in range(pmax):
             if debug:
                 print(i, pattern, args, kwargs)
-
             try:
                 pattern = pattern.format(*args, **kwargs)
                 break
@@ -117,6 +127,7 @@ class ParaFrame(pd.DataFrame):
         # Obtain list of files based on the glob pattern
         files = sorted(glob(pattern))
 
+        # Print the glob pattern and a summary of matches
         if debug:
             print(f'Pattern: "{pattern}"')
             n = len(files)

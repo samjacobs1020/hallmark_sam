@@ -1,21 +1,4 @@
-import os
-import shutil
-import pandas as pd
-import pytest
-import numpy as np
 from hallmark import ParaFrame
-
-
-@pytest.fixture
-def create_temp_data(tmp_path):
-    data_dir = tmp_path / "data"
-    for a in range(10):
-        subdir = data_dir / f"a_{a}"
-        subdir.mkdir(parents=True)
-        for b in range(10, 20):
-            (subdir / f"b_{b}.txt").touch()
-    return data_dir
-
 
 def test_paraframe_class_functionality(create_temp_data):
     # a user wants to create a paraframe
@@ -58,3 +41,18 @@ def test_paraframe_class_functionality(create_temp_data):
     mask_filter = pf[(1 <= pf.a) & (pf.a <= 4)]
     assert len(mask_filter) == 40
     assert all(mask_filter["a"].unique() == [1,2,3,4])
+
+def test_debug(create_temp_data, capsys, tmp_path):
+    # users want to see a detailed summary of how ParaFrame utilizes globbing
+    fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
+    ParaFrame.parse(fmt, debug = True)
+    captured = capsys.readouterr()
+    print(captured.out)
+    expected = (
+        '0 ' + str(tmp_path) + '/data/a_{a:d}/b_{b:d}.txt () {}\n' +
+        "1 " + str(tmp_path) + "/data/a_{a:s}/b_{b:d}.txt () {'a': '*'}\n" +
+        "2 " + str(tmp_path) + "/data/a_{a:s}/b_{b:s}.txt () {'a': '*', 'b': '*'}\n" +
+        'Pattern: "' + str(tmp_path) + '/data/a_*/b_*.txt"\n' +
+        '100 matches, e.g., "' + str(tmp_path) + '/data/a_0/b_10.txt"\n'
+    )
+    assert captured.out == expected
