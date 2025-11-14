@@ -121,16 +121,16 @@ def ParaFrame(fmt, *args, debug=False, **kwargs):
         elif n > 0:
             print(f'{n} match, i.e., "{files[0]}"')
         else:
-            print(f'No match; please check format string')
+            print('No match; please check format string')
 
     # Parse list of file names back to parameters
     parser = parse.compile(fmt)
 
-    l = []
+    frame = []
     for f in files:
         r = parser.parse(f)
         if r is None:
             print(f'Failed to parse "{f}"')
         else:
-            l.append({'path':f, **r.named})
-    return pd.DataFrame(l)
+            frame.append({'path':f, **r.named})
+    return pd.DataFrame(frame)
