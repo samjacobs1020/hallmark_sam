@@ -10,6 +10,8 @@ dependencies =[
     "GitPython",
     "pandas",
     "pyyaml",
+    "numpy",
+    "parse",
 ]
 
 [project.scripts]
@@ -17,3 +19,30 @@ hallmark = "hallmark.cli:hallmark"
 
 [tool.setuptools.packages.find]
 where = ["mod"]
+
+[project.urls]
+Homepage = "https://github.com/l6a/hallmark/"
+Repository = "https://github.com/l6a/hallmark/"
+Issues = "https://github.com/l6a/hallmark/issues"
+
+[dependency-groups]
+dev = [
+    "pytest"
+]
+lint = [
+    "ruff"
+]
+
+authors = [
+    {name = "Chi-kwan Chan"},
+    {name = "Nayera Abdessalam"},
+    {name = "Hayden Marchinek"},
+    {name = "Rohin Sant"},
+    {name = "Ram Adithya"},
+]
+
+description = "Reproducibility is the hallmark of the scientific method"
+
+[tool.ruff.lint]
+select = ["E", "F"]
+exclude = ["demos"]
