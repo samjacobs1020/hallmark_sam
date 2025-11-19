@@ -21,6 +21,7 @@ import parse
 import pandas as pd
 import numpy as np
 
+
 class ParaFrame(pd.DataFrame):
     """
     A subclass of :class:`pandas.DataFrame` with added methods for
@@ -32,21 +33,22 @@ class ParaFrame(pd.DataFrame):
       parameters from a format pattern (using ``glob`` + ``parse``).
     * ``__call__``/``filter``: convenience filtering by column values.
     """
+
     @property
     def _constructor(self):
         return ParaFrame
 
     def __call__(self, **kwds):
         return self.filter(**kwds)
-    
+
     def filter(self, **kwargs):
         """
         Filter a pandas ``DataFrame`` by matching column values.
 
         This function utlizes provided **kwargs to filter an existing
-        ``ParaFrame`` by masking based on column values. Filtering supports 
-        single- and multi-conditioned queries, returning rows that satisfy 
-        any of the provided conditions. 
+        ``ParaFrame`` by masking based on column values. Filtering supports
+        single- and multi-conditioned queries, returning rows that satisfy
+        any of the provided conditions.
 
         Args:
          **kwargs: Arbitrary keyword arguments specifying column names
@@ -63,7 +65,7 @@ class ParaFrame(pd.DataFrame):
         mask = [False] * len(self)
         for k, v in kwargs.items():
             if isinstance(v, (tuple, list)):
-                mask |= np.isin(np.array(self[k]),np.array(v))
+                mask |= np.isin(np.array(self[k]), np.array(v))
             else:
                 mask |= np.array(self[k]) == v
         return self[mask]
@@ -71,8 +73,8 @@ class ParaFrame(pd.DataFrame):
     @classmethod
     def glob_search(cls, fmt, *args, debug=False, **kwargs):
         pmax = len(fmt) // 3  # to specify a parameter, we need at least
-                              # three characters '{p}'; the maximum number
-                              # of possible parameters is `len(fmt) // 3`.
+        # three characters '{p}'; the maximum number
+        # of possible parameters is `len(fmt) // 3`.
 
         # Construct the glob pattern for search files
         pattern = fmt
@@ -84,14 +86,14 @@ class ParaFrame(pd.DataFrame):
                 break
             except KeyError as e:
                 k = e.args[0]
-                pattern = re.sub(r'\{'+k+r':?.*?\}', '{'+k+':s}', pattern)
-                kwargs[e.args[0]] = '*'
+                pattern = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":s}", pattern)
+                kwargs[e.args[0]] = "*"
 
         # Obtain list of files based on the glob pattern
         files = sorted(glob(pattern))
-        
+
         # Print the glob pattern and a summary of matches
-        if debug:
+        if debug == True:
             print(f'Pattern: "{pattern}"')
             n = len(files)
             if n > 1:
@@ -99,13 +101,12 @@ class ParaFrame(pd.DataFrame):
             elif n > 0:
                 print(f'{n} match, i.e., "{files[0]}"')
             else:
-                print(f'No match; please check format string')
-    
+                print(f"No match; please check format string")
+
         return files
-        
 
     @classmethod
-    def parse(cls, fmt):
+    def parse(cls, fmt, debug=False):
         """
         Construct a ``ParaFrame`` by parsing file paths that match a pattern.
 
@@ -143,15 +144,15 @@ class ParaFrame(pd.DataFrame):
         0  data/run1_p10.csv  1   10
         1  data/run2_p20.csv  2   20
         """
-       
+
         # Parse list of file names back to parameters
         parser = parse.compile(fmt)
-        files = ParaFrame.glob_search(fmt)
+        files = ParaFrame.glob_search(fmt, debug=debug)
         l = []
         for f in files:
             r = parser.parse(f)
             if r is None:
                 print(f'Failed to parse "{f}"')
             else:
-                l.append({'path':f, **r.named})
+                l.append({"path": f, **r.named})
         return cls(l)
