@@ -39,6 +39,7 @@ authors = [
     {name = "Hayden Marchinek"},
     {name = "Rohin Sant"},
     {name = "Ram Adithya"},
+    {name = "Hayden Foote"},
 ]
 
 description = "Reproducibility is the hallmark of the scientific method"
