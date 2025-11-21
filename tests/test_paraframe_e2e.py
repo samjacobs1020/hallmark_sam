@@ -19,8 +19,8 @@ def test_paraframe_class_functionality(create_temp_data):
 
     # users want to filter files to see those with a = 0 or b = 10
     tuple_filter = pf(a=0, b=10)
-    # splitting columns with a=0 value and b=10 value to check that the correct number of 
-    # files and column values are filtered
+    # splitting columns with a=0 value and b=10 value to check that the  
+    # correct number of files and column values are filtered
     a_filter = tuple_filter(a=0)
     b_filter = tuple_filter(b = 10)
     assert len(tuple_filter) == 19
