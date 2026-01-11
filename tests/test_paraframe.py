@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 from hallmark import ParaFrame
+from pathlib import Path
 
 @pytest.fixture
 def create_ParaFrame(create_temp_data):
@@ -29,3 +30,8 @@ def test_all_txt_files_b10_through_b19_get_created(create_ParaFrame):
 def test_pandas_method_on_pf(create_ParaFrame):
     pf = create_ParaFrame
     assert isinstance(pf.head(), pd.DataFrame)
+
+def test_glob_string_format(create_temp_data):
+    fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
+    pattern = ParaFrame.glob_search(fmt, a=0, return_pattern=True)[1]
+    assert Path(pattern).as_posix().endswith("/a_0/b_*.txt")
