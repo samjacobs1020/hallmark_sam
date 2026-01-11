@@ -35,3 +35,14 @@ def test_glob_string_format(create_temp_data):
     fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
     pattern = ParaFrame.glob_search(fmt, a=0, return_pattern=True)[1]
     assert Path(pattern).as_posix().endswith("/a_0/b_*.txt")
+
+def test_glob_method_returns_files(create_temp_data):
+    fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
+    files = ParaFrame.glob_search(fmt, a=0, return_pattern=True)[0]
+    assert len(files) == 10
+
+def test_parse_with_filter_arg(create_temp_data):
+    fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
+    pf = ParaFrame.parse(fmt, a=0)
+    assert pf.shape == (10, 3)
+    assert pf["a"].unique() == 0
