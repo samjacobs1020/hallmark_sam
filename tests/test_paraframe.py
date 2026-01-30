@@ -43,7 +43,7 @@ def test_pandas_method_on_pf(create_ParaFrame):
 def test_glob_string_format(create_temp_data):
     fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
     pattern = ParaFrame.glob_search(fmt, a=0, return_pattern=True)[1]
-    norm = pattern.replace("\\", "/") # standardize output for Mac and PC OS
+    norm = pattern.replace("\\", "/") # standardize output for Mac and PC
     assert  norm.endswith("/a_0/b_*.txt")
 
 def test_glob_method_returns_files(create_temp_data):

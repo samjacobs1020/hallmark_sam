@@ -20,6 +20,7 @@ import re
 import parse
 import pandas as pd
 import numpy as np
+import string           # added for Formatter subclassing
 
 
 class ParaFrame(pd.DataFrame):
@@ -157,3 +158,20 @@ class ParaFrame(pd.DataFrame):
             else:
                 frame.append({'path':f, **r.named})
         return cls(frame)
+
+class newFormatter(string.Formatter):
+
+    def format_field(self, value, type):
+        # define default formatting for spin values according to EHT standards
+        
+        # need to add some kind of .get("Formatter") that acesses the yml file
+        if type == "aspin":
+            # here we need to take in the information in the "formatter" section of the .yml file
+            # so that each special case of spin types are accounted for. Will probably be a return
+            # statement in this that uses whatever is in the .yml spin type dictionary
+
+            # otherwise we return a default for all standard spins?
+            return f'{value:+g}'
+        
+        # otherwise, all other data types keep their default behavior
+        return super().format_field(value, type)
