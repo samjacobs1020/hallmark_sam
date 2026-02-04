@@ -22,6 +22,7 @@ import pandas as pd
 import numpy as np
 import string           # added for Formatter subclassing
 
+from .helper_functions import *
 
 class ParaFrame(pd.DataFrame):
     """
@@ -78,7 +79,14 @@ class ParaFrame(pd.DataFrame):
         # of possible parameters is `len(fmt) // 3`.
 
         # Construct the glob pattern for search files
+
+        ### Load Yaml File ###
+        parameters = load_encodings_yaml()
+        print(parameters)
+        ### Call Pre-processing function ###
+
         pattern = fmt
+        new_fmt = fmt
         for i in range(pmax):
             if debug:
                 print(i, pattern, args, kwargs)
@@ -149,6 +157,9 @@ class ParaFrame(pd.DataFrame):
 
         # Parse list of file names back to parameters
         new_fmt, files = cls.glob_search(fmt, *args, debug=debug, **kwargs)
+
+        ### Normalizing custom Characters function ###
+
         parser = parse.compile(new_fmt)
 
         frame = []
