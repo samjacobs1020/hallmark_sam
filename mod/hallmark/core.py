@@ -78,42 +78,55 @@ class ParaFrame(pd.DataFrame):
         # three characters '{p}'; the maximum number
         # of possible parameters is `len(fmt) // 3`.
 
-        # Construct the glob pattern for search files
-
-        ### Load Yaml File ###
+        # Load and read Yaml file
         parameters = load_encodings_yaml()
         print(parameters)
-        ### Call Pre-processing function ###
 
+        # Construct the glob pattern for search files
         pattern = fmt
-        new_fmt = fmt
-        for i in range(pmax):
-            if debug:
-                print(i, pattern, args, kwargs)
-            try:
-                pattern = pattern.format(*args, **kwargs)
-                break
-            except KeyError as e:
-                k = e.args[0]
-                pattern = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":s}", pattern)
-                new_fmt = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":d}", new_fmt)
-                kwargs[e.args[0]] = "*"
+        fmt_d = fmt
 
-        # Obtain list of files based on the glob pattern
-        files = sorted(glob(pattern))
+        ### Call Preprocessing Function ###
+        custom_key_encoding_map = encoding_map(fmt)
+        encoding = custom_key_encoding_map['aspin']
 
-        # Print the glob pattern and a summary of matches
-        if debug == True:
-            print(f'Pattern: "{pattern}"')
-            n = len(files)
-            if n > 1:
-                print(f'{n} matches, e.g., "{files[0]}"')
-            elif n > 0:
-                print(f'{n} match, i.e., "{files[0]}"')
-            else:
-                print(f"No match; please check format string")
+        if encoding in parameters:
+            # if "__HM_PREPROCESSED__" not in fmt:
+            #     raise ValueError(
+            #         "Format string was not preprocessed. "
+            #         "Call preprocess_fmt(fmt) before glob_search()."
+            #         )
+            
+            for i in range(pmax):
+                if debug:
+                    print(i, pattern, args, kwargs)
+                try:
+                    pattern = pattern.format(*args, **kwargs)
+                    break
+                except KeyError as e:
+                    k = e.args[0]
+                    pattern = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":s}", pattern)
+                    fmt_s = pattern
+                    fmt_d = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":d}", fmt_d)
+                    kwargs[e.args[0]] = "*"
 
-        return (files, pattern) if return_pattern else (new_fmt, files)
+            # Obtain list of files based on the glob pattern
+            globbed_files = sorted(glob(pattern))
+
+            # Print the glob pattern and a summary of matches
+            if debug == True:
+                print(f'Pattern: "{pattern}"')
+                n = len(globbed_files)
+                if n > 1:
+                    print(f'{n} matches, e.g., "{globbed_files[0]}"')
+                elif n > 0:
+                    print(f'{n} match, i.e., "{globbed_files[0]}"')
+                else:
+                    print(f"No match; please check format string")
+
+            return (globbed_files, pattern) if return_pattern else (fmt_d, fmt_s, custom_key_encoding_map, globbed_files)
+        else:
+            raise KeyError("Custom Key not defined in config file!")
 
     @classmethod
     def parse(cls, fmt, *args, debug=False, **kwargs): 
@@ -155,15 +168,18 @@ class ParaFrame(pd.DataFrame):
         1  data/run2_p20.csv  2   20
         """
 
+        ### Call Preprocessing Function ###
+        
+        
         # Parse list of file names back to parameters
-        new_fmt, files = cls.glob_search(fmt, *args, debug=debug, **kwargs)
+        fmt_d, fmt_s, custom_key_encoding_map, globbed_files = cls.glob_search(fmt, *args, debug=debug, **kwargs)
 
         ### Normalizing custom Characters function ###
 
-        parser = parse.compile(new_fmt)
+        parser = parse.compile(fmt_s)
 
         frame = []
-        for f in files:
+        for f in globbed_files:
             r = parser.parse(f)
             if r is None:
                 print(f'Failed to parse "{f}"')
