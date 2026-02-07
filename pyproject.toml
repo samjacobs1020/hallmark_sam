@@ -5,32 +5,15 @@ requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
 name = "hallmark"
 dynamic = ["version"]
 license = "Apache-2.0"
+description = "Reproducibility is the hallmark of the scientific method"
+
 dependencies =[
     "click",
     "GitPython",
-    "pandas",
-    "pyyaml",
     "numpy",
+    "pandas",
     "parse",
-]
-
-[project.scripts]
-hallmark = "hallmark.cli:hallmark"
-
-[tool.setuptools.packages.find]
-where = ["mod"]
-
-[project.urls]
-Homepage = "https://github.com/l6a/hallmark/"
-Repository = "https://github.com/l6a/hallmark/"
-Issues = "https://github.com/l6a/hallmark/issues"
-
-[dependency-groups]
-dev = [
-    "pytest"
-]
-lint = [
-    "ruff"
+    "pyyaml",
 ]
 
 authors = [
@@ -42,8 +25,22 @@ authors = [
     {name = "Hayden Foote"},
 ]
 
-description = "Reproducibility is the hallmark of the scientific method"
+[project.scripts]
+hallmark = "hallmark.cli:hallmark"
+
+[project.urls]
+Homepage = "https://l6a.github.io/hallmark"
+Repository = "https://github.com/l6a/hallmark"
+Issues = "https://github.com/l6a/hallmark/issues"
+
+[dependency-groups]
+dev = ["pytest"]
+doc = ["sphinx"]
+lint = ["ruff"]
+
+[tool.setuptools.packages.find]
+where = ["mod"]
 
 [tool.ruff.lint]
 select = ["E", "F"]
-exclude = ["demos"]
+exclude = ["doc", "demo"]
