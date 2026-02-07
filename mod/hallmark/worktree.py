@@ -37,3 +37,6 @@ class Worktree(Path):
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
         return cls(path)
+
+    def __truediv__(self, key):
+        return Path(self) / key
