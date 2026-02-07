@@ -84,8 +84,11 @@ def add(repo, fstring):
     """
     pf = repo.add(fstring)
 
-    click.echo("Changes to be committed")
-    click.echo(pf.path.to_string(index=False, header=False))
+    if pf.empty:
+        click.echo("No files matched the format string.")
+    else:
+        click.echo("Changes to be committed")
+        click.echo(pf.path.to_string(index=False, header=False))
 
 
 @hallmark.command(short_help="Commit changes to the repository.")
@@ -96,4 +99,7 @@ def commit(repo, message):
 
     This is analogous to `git commit -m MESSAGE`.
     """
-    succeed = repo.commit(message)
+    if repo.commit(message):
+        click.echo("Committed staged state changes.")
+    else:
+        click.echo("No changes added to commit.")
