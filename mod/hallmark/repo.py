@@ -16,6 +16,7 @@
 from dataclasses import dataclass
 from typing      import Optional
 from pathlib     import Path
+from hashlib     import sha1
 
 from .state      import State
 from .dothm      import Dothm
@@ -56,6 +57,14 @@ class Repo:
         worktree_path and Worktree.init(worktree_path)
         return cls(path)
 
+    @staticmethod
+    def checksum(path: Path, chunk_size: int = 1024 * 1024) -> str:
+        digest = sha1()
+        with path.open("rb") as f:
+            for block in iter(lambda: f.read(chunk_size), b""):
+                digest.update(block)
+        return digest.hexdigest()
+
     def add(self, fstr: str) -> ParaFrame:
         if self.worktree is None:
             raise RuntimeError(
@@ -64,6 +73,12 @@ class Repo:
         from contextlib import chdir
         with chdir(self.worktree):
             pf = ParaFrame(fstr)
+
+        if not pf.empty:
+            pf["sha1"] = [
+                self.checksum(self.worktree / path)
+                for path in pf["path"].astype(str)
+            ]
 
         self.state.update(pf)
         self.dothm.dump(self.state)
