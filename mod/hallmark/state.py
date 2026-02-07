@@ -36,4 +36,11 @@ class State:
     )
 
     def update(self, pf):
-        self.data = pd.concat([self.data, pf]).drop_duplicates()
+        merged = pd.concat([self.data, pf], ignore_index=True, sort=False)
+
+        # If the same path is added again (e.g., file content changed
+        # and a new sha1 is computed), keep only the newest row for
+        # that key.
+        deduped = merged.drop_duplicates(subset=["path"], keep="last")
+
+        self.data = deduped
