@@ -89,8 +89,9 @@ Currently, |hallmark|_ has two built-in APIs:
 
 ``Worktree`` follows the same idea as
 `git worktree <https://git-scm.com/docs/git-worktree>`_:
-multiple working trees can be attached to one repository to support
-parallel data transformations and branch-isolated workflows.
+multiple ``repo/.hm`` directories can be attached to one underlying
+repository to support parallel data transformations and
+branch-isolated workflows.
 
 
 Repository ``Repo``
@@ -103,19 +104,25 @@ Repository ``Repo``
 
          +--- Worktree
 	 v
-        "repo/.hm/" <--- Dothm
+        "repo/.hm/" <--- Dothm, a standard git repo
 
 2.  bare repository:::
 
-        "repo.hm/" <--- Dothm
+        "repo.hm/" <--- Dothm, a standard or bare git repo
 
-3.  linked repository:::
+3.  shared repository (multiple worktrees):::
 
-         +--- Worktree
-	 v
-        "repo/.hm.yml" <----YAML file, pointing
-              |             to a different
-              +-----------> "repo.hm/"
+         +--- Worktree                     git repo
+         v                                        ^
+        "repo1/.hm/" <--- Dothm, a git worktree --+
+                                                  |
+         +--- Worktree                            |
+         v                                        |
+        "repo2/.hm/" <--- Dothm, a git worktree --+
+                                                  |
+         +--- Worktree                            |
+         v                                        |
+        "repo3/.hm/" <--- Dothm, a git worktree --+
 
 
 ..  |hallmark| replace:: ``hallmark``
