@@ -36,11 +36,17 @@ class Dothm(Repo):
     def path(self) -> Path:
         return Path(self.working_tree_dir)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.working_tree_dir is None:
+            raise DothmError('The ".hm" directory must be a valid git worktree.')
+
     @classmethod
     def init(cls, *args, **kwargs) -> "Dothm":
+        if kwargs.get('bare', False):
+            raise DothmError('A ".hm" directory must not be a bare git repository')
+
         dothm = super().init(*args, **kwargs)
-        if dothm.bare or dothm.working_tree_dir is None:
-            raise DothmError('The ".hm" directory must be a valid git worktree.')
         readme_path = dothm.path / "README.md"
         with open(readme_path, "w", encoding="utf-8") as f:
             f.write("""# Local `.hm` Repository
