@@ -59,6 +59,18 @@ See https://l6a.github.io/hallmark/ for `hallmark` usage.
         dothm.index.commit("Initial commit: local `.hm` repository")
         return dothm
 
+    def link(self, path: Path | str, branch: str | None = None):
+        from git.exc import GitCommandError
+
+        cmd  = self.git              # has its own working directory
+        path = Path(path).resolve()  # use absolute path
+        try:
+            cmd.worktree("add", path, branch)
+        except GitCommandError as e:
+            raise DothmError(f'Failed to link "{path}": {e}')
+        else:
+            return Dothm(path)
+
     def load(self) -> State:
         return State(
             self.load_yml("config"),
