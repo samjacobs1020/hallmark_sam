@@ -8,4 +8,7 @@ data:
     encoding:
       aspin: ""
 
+  - fmt : "data/a{aspin}/b_{b:d}.txt"
+    encoding:
+      aspin: ""
       
