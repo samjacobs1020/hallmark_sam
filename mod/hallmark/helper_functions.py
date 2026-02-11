@@ -2,7 +2,7 @@ from pathlib import Path
 import yaml
 import re
 
-ENCODINGS_YAML = Path(__file__).parent / "encodings.yaml"
+ENCODINGS_YAML = Path(__file__).parents[2] / "encodings.yaml"
 
 def load_encodings_yaml(index = 0, path=ENCODINGS_YAML):
     f = path.open("r", encoding="utf-8")
@@ -13,7 +13,6 @@ def load_encodings_yaml(index = 0, path=ENCODINGS_YAML):
 def regex_sub(f, yaml_encodings):
     fmt = f
     regex = yaml_encodings["encoding"]["aspin"]
-    
     if re.search(regex, fmt) and len(regex)>0: 
         matches = re.finditer(regex, fmt)
         for match in matches:

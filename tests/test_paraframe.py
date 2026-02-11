@@ -5,13 +5,13 @@ from hallmark.helper_functions import *
 
 @pytest.fixture
 def create_ParaFrame(create_temp_data):
-    #fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
-    return ParaFrame.parse(1, debug = True)
+    fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
+    return ParaFrame.parse(1,_test_fmt = fmt, debug = True)
 
 @pytest.fixture
 def create_ParaFrame_spin(create_temp_data_spin):
-    #fmt = str(create_temp_data_spin / "a_{a:spin}/b_{b:d}.txt")
-    return ParaFrame.parse(2, debug = True)
+    fmt = str(create_temp_data_spin / "a_{a:spin}/b_{b:d}.txt")
+    return ParaFrame.parse(1,_test_fmt = fmt, debug = True)
 
 def test_type_of_ParaFrame(create_ParaFrame):
     assert isinstance(create_ParaFrame, ParaFrame)
@@ -42,19 +42,19 @@ def test_pandas_method_on_pf(create_ParaFrame):
     assert isinstance(pf.head(), pd.DataFrame)
 
 def test_glob_string_format(create_temp_data):
-    #fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
-    pattern = ParaFrame.glob_search(1, a=0, return_pattern=True)[1]
+    fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
+    pattern = ParaFrame.glob_search(1,_test_fmt=fmt, a=0, return_pattern=True)[1]
     norm = pattern.replace("\\", "/") # standardize output for Mac and PC
     assert  norm.endswith("/a_0/b_*.txt")
 
 def test_glob_method_returns_files(create_temp_data):
-    #fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
-    files = ParaFrame.glob_search(1, a=0, return_pattern=True)[0]
+    fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
+    files = ParaFrame.glob_search(1,_test_fmt=fmt, a=0, return_pattern=True)[0]
     assert len(files) == 10
 
 def test_parse_method_with_added_filter_arg(create_temp_data):
-    #fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
-    pf = ParaFrame.parse(1, a=0)
+    fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
+    pf = ParaFrame.parse(1,_test_fmt=fmt, a=0)
     assert pf.shape == (10, 3)
     assert pf["a"].unique() == 0
     
@@ -81,8 +81,4 @@ def test_filtering_by_numeric_spin(create_ParaFrame_spin):
     assert set(pf_filtered["a"].unique()) == {0.5}
 
 # def test_loading_yaml_file_for_special_formatting():
-#     parameters = load_encodings_yaml()
-#     assert "spin_UIUC" in parameters
-#     assert "spin_BHAC" in parameters
-#     assert parameters['spin_UIUC']['regex'] == "m?([0-9]+(\.[0-9]+)?|\.[0-9]+)"
-#     assert parameters['spin_UIUC']['transform']['m'] == '-'
+#     parameters = load_encodings_yaml(index=1,path = "/tmp/encoding_tmp.yaml")

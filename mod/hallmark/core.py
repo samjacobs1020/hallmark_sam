@@ -73,11 +73,16 @@ class ParaFrame(pd.DataFrame):
         return self[mask]
 
     @classmethod
-    def glob_search(cls, index = 0, *args, debug=False, return_pattern=False,**kwargs):
+    def glob_search(cls, index = 0, _test_fmt = None, *args, debug=False, return_pattern=False,**kwargs):
 
         # Load and read Yaml file
-        yaml_encodings = load_encodings_yaml(index)
-        fmt = yaml_encodings["fmt"]
+        if _test_fmt != None:
+            fmt = _test_fmt
+
+            yaml_encodings = load_encodings_yaml(index,path=Path("/tmp/encoding_tmp.yaml"))
+        else:
+            yaml_encodings = load_encodings_yaml(index)
+            fmt = yaml_encodings["fmt"]
 
         pmax = len(fmt) // 3  # to specify a parameter, we need at least
         # three characters '{p}'; the maximum number
@@ -117,7 +122,7 @@ class ParaFrame(pd.DataFrame):
         return (globbed_files, pattern) if return_pattern else (yaml_encodings, fmt_g, globbed_files)
 
     @classmethod
-    def parse(cls, index = 0, *args, debug=False, **kwargs,): 
+    def parse(cls, index = 0, _test_fmt = None, *args, debug=False, **kwargs,): 
         """
         Construct a ``ParaFrame`` by parsing file paths that match a pattern.
 
@@ -158,7 +163,7 @@ class ParaFrame(pd.DataFrame):
     
         # Parse list of file names back to parameters
 
-        yaml_encodings, fmt_g, globbed_files = cls.glob_search(index, *args, debug=debug, **kwargs)
+        yaml_encodings, fmt_g, globbed_files = cls.glob_search(index,_test_fmt, *args, debug=debug, **kwargs)
         parser = parse.compile(fmt_g)
 
         frame = []

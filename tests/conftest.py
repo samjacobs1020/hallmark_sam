@@ -1,6 +1,10 @@
 import pytest
+import shutil
+
+shutil.copy2('encodings.yaml', '/tmp/encoding_tmp.yaml')
 
 def spin_format(val):
+
     if val == 0:
         return "0"
     return f"{val:+g}"
