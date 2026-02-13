@@ -13,6 +13,11 @@ def create_ParaFrame_spin(create_temp_data_spin):
     fmt = str(create_temp_data_spin / "a{aspin}/b_{b:d}.txt")
     return ParaFrame.parse(1,_test_fmt = fmt, debug = True)
 
+@pytest.fixture
+def create_ParaFrame_spin_with_m(create_temp_data_spin_with_m):
+    fmt = str(create_temp_data_spin_with_m / '{mag:d}_mag{aspin}_w{win:d}.h5')
+    return ParaFrame.parse(0,_test_fmt = fmt, debug = True)
+
 def test_type_of_ParaFrame(create_ParaFrame):
     assert isinstance(create_ParaFrame, ParaFrame)
 
@@ -58,7 +63,6 @@ def test_parse_method_with_added_filter_arg(create_temp_data):
     assert pf.shape == (10, 3)
     assert pf["a"].unique() == 0
 
-
 def test_glob_method_accepts_spin_formatter_type_and_builds_glob_method(create_temp_data_spin):
     fmt = str(create_temp_data_spin / "a{aspin}/b_{b:d}.txt")
     files, pattern = ParaFrame.glob_search(2, _test_fmt=fmt, aspin="+0.5", return_pattern=True)
@@ -66,13 +70,11 @@ def test_glob_method_accepts_spin_formatter_type_and_builds_glob_method(create_t
     assert norm.endswith("/a+0.5/b_*.txt")
     assert len(files) == 10
 
-#@pytest.mark.xfail(strict=True, reason="Formatter issue solution not yet implemented")
 def test_parse_produces_float_spin_column(create_ParaFrame_spin):
     pf = create_ParaFrame_spin
     assert pd.api.types.is_float_dtype(pf["aspin"])
     assert set(pf["aspin"].unique()) == {-0.5, 0.0, 0.5}
 
-#@pytest.mark.xfail(strict=True, reason="Formatter issue solution not yet implemented")
 def test_filtering_by_numeric_spin(create_ParaFrame_spin):
     pf = create_ParaFrame_spin
     pf_filtered = pf(aspin=0.5)
@@ -84,3 +86,16 @@ def test_loading_yaml_file_for_test_spin_formatting_contents():
     assert "fmt" in params
     assert "encoding" in params
     assert "aspin" in params["encoding"]
+
+def test_m_type_for_spin_data_with_yaml_regex(create_temp_data_spin_with_m):
+    fmt = str(create_temp_data_spin_with_m / "{mag:d}_mag{aspin}_w{win:d}.h5")
+    pf = ParaFrame.parse(0,_test_fmt = fmt, debug = True)
+    pf_filtered = pf(aspin=-0.5)
+    assert len(pf_filtered) == 20
+    assert set(pf_filtered["aspin"].unique()) == {-0.5}
+
+def test_m_type_for_spin_data_with_multiple_filters(create_temp_data_spin_with_m):
+    fmt = str(create_temp_data_spin_with_m / "{mag:d}_mag{aspin}_w{win:d}.h5")
+    pf = ParaFrame.parse(0,_test_fmt = fmt, debug = True)
+    pf_filtered = pf(aspin=[-0.5,0.0])
+    assert len(pf_filtered) == 40
