@@ -10,7 +10,7 @@ def create_ParaFrame(create_temp_data):
 
 @pytest.fixture
 def create_ParaFrame_spin(create_temp_data_spin):
-    fmt = str(create_temp_data_spin / "a_{a:spin}/b_{b:d}.txt")
+    fmt = str(create_temp_data_spin / "a{aspin}/b_{b:d}.txt")
     return ParaFrame.parse(1,_test_fmt = fmt, debug = True)
 
 def test_type_of_ParaFrame(create_ParaFrame):
@@ -20,10 +20,10 @@ def test_shape_of_ParaFrame(create_ParaFrame):
     pf = create_ParaFrame
     assert pf.shape == (100,3)
 
-# def test_column_dtype(create_ParaFrame):
-#     pf = create_ParaFrame
-#     assert pd.api.types.is_integer_gtype(pf["a"])
-#     assert pd.api.types.is_integer_gtype(pf["b"])
+def test_column_dtype(create_ParaFrame):
+    pf = create_ParaFrame
+    assert pd.api.types.is_float_dtype(pf["a"])
+    assert pd.api.types.is_float_dtype(pf["b"])
 
 def test_column_names_in_ParaFrame(create_ParaFrame):
     pf = create_ParaFrame
@@ -57,28 +57,30 @@ def test_parse_method_with_added_filter_arg(create_temp_data):
     pf = ParaFrame.parse(1,_test_fmt=fmt, a=0)
     assert pf.shape == (10, 3)
     assert pf["a"].unique() == 0
-    
-# update these to take parameters from the example fmt in helper_functions 
-@pytest.mark.xfail(strict=True, reason="Formatter issue solution not yet implemented")
+
+
 def test_glob_method_accepts_spin_formatter_type_and_builds_glob_method(create_temp_data_spin):
-    #fmt = str(create_temp_data_spin / "a{a:spin}/b_{b:d}.txt")
-    files, pattern = ParaFrame.glob_search(2, a=0.5, return_pattern=True)
+    fmt = str(create_temp_data_spin / "a{aspin}/b_{b:d}.txt")
+    files, pattern = ParaFrame.glob_search(2, _test_fmt=fmt, aspin="+0.5", return_pattern=True)
     norm = pattern.replace("\\", "/") # standardize output for Mac and PC OS
     assert norm.endswith("/a+0.5/b_*.txt")
     assert len(files) == 10
 
-@pytest.mark.xfail(strict=True, reason="Formatter issue solution not yet implemented")
+#@pytest.mark.xfail(strict=True, reason="Formatter issue solution not yet implemented")
 def test_parse_produces_float_spin_column(create_ParaFrame_spin):
     pf = create_ParaFrame_spin
-    assert pd.api.types.is_float_dtype(pf["a"])
-    assert set(pf["a"].unique()) == {-0.5, 0.0, 0.5}
+    assert pd.api.types.is_float_dtype(pf["aspin"])
+    assert set(pf["aspin"].unique()) == {-0.5, 0.0, 0.5}
 
-@pytest.mark.xfail(strict=True, reason="Formatter issue solution not yet implemented")
+#@pytest.mark.xfail(strict=True, reason="Formatter issue solution not yet implemented")
 def test_filtering_by_numeric_spin(create_ParaFrame_spin):
     pf = create_ParaFrame_spin
-    pf_filtered = pf(a=0.5)
-    assert len(pf_filtered) == 3
-    assert set(pf_filtered["a"].unique()) == {0.5}
+    pf_filtered = pf(aspin=0.5)
+    assert len(pf_filtered) == 10
+    assert set(pf_filtered["aspin"].unique()) == {0.5}
 
-# def test_loading_yaml_file_for_special_formatting():
-#     parameters = load_encodings_yaml(index=1,path = "/tmp/encoding_tmp.yaml")
+def test_loading_yaml_file_for_test_spin_formatting_contents():
+    params = load_encodings_yaml(index=2,path = Path("/tmp/encoding_tmp.yaml"))
+    assert "fmt" in params
+    assert "encoding" in params
+    assert "aspin" in params["encoding"]
