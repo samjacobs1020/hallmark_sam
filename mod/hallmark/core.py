@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from glob import glob
 
 import re
@@ -72,18 +71,32 @@ class ParaFrame(pd.DataFrame):
         return self[mask]
 
     @classmethod
-    def glob_search(cls, fmt, *args, debug=False, return_pattern=False,**kwargs):
-
-        # Load and read Yaml file
-
+    def glob_search(cls, fmt, *args, debug=False, return_pattern=False, encoding=False, **kwargs):
         pmax = len(fmt) // 3  # to specify a parameter, we need at least
         # three characters '{p}'; the maximum number
         # of possible parameters is `len(fmt) // 3`.
 
+        yaml_encodings = find_spec_by_fmt(fmt)
+
+        if yaml_encodings is None:
+            raise ValueError(f"Error: The format '{fmt}' is missing from encodings.yaml.")
+
+        needs_encoding = False
+        enc_dict = yaml_encodings.get("encoding", {})
+        
+        for key in enc_dict:
+            if enc_dict[key] != "":
+                needs_encoding = True
+                
+        if needs_encoding == True and encoding == False:
+            raise ValueError(f"Error: '{fmt}' has a regex spec, so you must use encoding=True")
+            
+        if needs_encoding == False and encoding == True:
+            raise ValueError(f"Error: '{fmt}' does not have a regex spec, so you must use encoding=False")
+
         # Construct the glob pattern for search files
         pattern = fmt
         fmt_g = fmt
-
 
         for i in range(pmax):
             if debug:
@@ -111,10 +124,13 @@ class ParaFrame(pd.DataFrame):
             else:
                 print(f"No match; please check format string")
 
-        return (globbed_files, pattern) if return_pattern else ( globbed_files, fmt_g)
+        if return_pattern:
+            return (globbed_files, pattern)
+        else:
+            return (yaml_encodings, fmt_g, globbed_files)
 
     @classmethod
-    def parse(cls, fmt, _tmp_test = None, encoding = False, *args, debug=False, **kwargs,): 
+    def parse(cls, fmt, *args, debug=False, encoding=False, **kwargs):
         """
         Construct a ``ParaFrame`` by parsing file paths that match a pattern.
 
@@ -152,32 +168,21 @@ class ParaFrame(pd.DataFrame):
         0  data/run1_p10.csv  1   10
         1  data/run2_p20.csv  2   20
         """
-    
         # Parse list of file names back to parameters
+        yaml_encodings, fmt_g, globbed_files = cls.glob_search(fmt, *args, debug=debug, encoding=encoding, **kwargs)
 
-        globbed_files, fmt_g = cls.glob_search(fmt, *args, debug=debug, **kwargs)
         parser = parse.compile(fmt_g)
 
         frame = []
-        if encoding == True:
-            if _tmp_test != None:
-                
-        
-                encoding_data = load_encodings_yaml(_tmp_test)
-            else:
-                 encoding_data = load_encodings_yaml(fmt)
-
-            
-                
         for f in globbed_files:
-            if encoding == True:
-                f_new = regex_sub(f, encoding_data)
+            if encoding:
+                f_new = regex_sub(f, yaml_encodings)
             else:
                 f_new = f
+
             r = parser.parse(f_new)
             if r is None:
                 print(f'Failed to parse "{f}"')
             else:
-                frame.append({'path':f, **r.named})
-        print(frame)
+                frame.append({'path': f, **r.named})
         return cls(frame)
