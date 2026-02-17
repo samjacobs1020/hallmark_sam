@@ -172,11 +172,16 @@ class ParaFrame(pd.DataFrame):
         yaml_encodings, fmt_g, globbed_files = cls.glob_search(fmt, *args, debug=debug, encoding=encoding, **kwargs)
 
         parser = parse.compile(fmt_g)
+        print(fmt_g)
 
         frame = []
         for f in globbed_files:
+            f_name = '/'+Path(f).name
+            dir_name = str(Path(f).parent)
             if encoding:
-                f_new = regex_sub(f, yaml_encodings)
+                f_new = regex_sub(f_name, yaml_encodings)
+                f_new = dir_name + f_new
+                print(f_new)
             else:
                 f_new = f
 

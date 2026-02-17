@@ -90,7 +90,7 @@ def test_filtering_by_numeric_spin(create_ParaFrame_spin):
 
 def test_m_type_for_spin_data_with_yaml_regex(create_temp_data_spin_with_m):
     fmt = str(create_temp_data_spin_with_m / "{mag:d}_mag{aspin}_w{win:d}.h5")
-    pf = ParaFrame.parse(fmt, _tmp_test = "data/{mag:d}_mag{aspin}_w{win:d}.h5", encoding= True, debug = True)
+    pf = ParaFrame.parse(fmt, encoding= True, debug = True)
     
     pf_filtered = pf(aspin=-0.5)
     assert len(pf_filtered) == 20
@@ -98,6 +98,6 @@ def test_m_type_for_spin_data_with_yaml_regex(create_temp_data_spin_with_m):
 
 def test_m_type_for_spin_data_with_multiple_filters(create_temp_data_spin_with_m):
     fmt = str(create_temp_data_spin_with_m / "{mag:d}_mag{aspin}_w{win:d}.h5")
-    pf = ParaFrame.parse(fmt,  _tmp_test = "data/{mag:d}_mag{aspin}_w{win:d}.h5",encoding=True, debug = True)
+    pf = ParaFrame.parse(fmt,encoding=True, debug = True)
     pf_filtered = pf(aspin=[-0.5,0.0])
     assert len(pf_filtered) == 40
