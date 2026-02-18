@@ -5,28 +5,47 @@ from pathlib import Path
 
 ENCODINGS_YAML = Path(__file__).parents[1] / "encodings.yaml"
 
+import pytest
+import yaml
+from pathlib import Path
+
+ENCODINGS_YAML = Path(__file__).parents[1] / "encodings.yaml"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _backup_and_restore_encodings_yaml():
+    original_text = ENCODINGS_YAML.read_text(encoding="utf-8")
+
+    yield  # all tests run
+
+    ENCODINGS_YAML.write_text(original_text, encoding="utf-8")
+
+
 @pytest.fixture(scope="function", autouse=True)
-def _append_tmp_path_entry_to_repo_yaml(tmp_path, request, fmt = "data/{mag:d}_mag{aspin}_w{win:d}.h5"):
+def _append_tmp_path_entries_to_encodings_yaml(tmp_path, request):
     y = yaml.safe_load(ENCODINGS_YAML.read_text(encoding="utf-8")) or {}
     y.setdefault("data", [])
 
-    new_entry = {
-        "fmt": fmt,
-        "path_to_fmt": str(tmp_path),
-        "encoding": {
-            "aspin": r"m([0-9]+(\.[0-9]+)?|\.[0-9]+)"
-        },
-    }
+    fmts = [
+        "data/a_{a:d}/b_{b:d}.txt",
+        "data/a{aspin}/b_{b:d}.txt",
+        "data/{mag:d}_mag{aspin}_w{win:d}.h5",
+    ]
 
-    y["data"].append(new_entry)
+    for fmt in fmts:
+        y["data"].append(
+            {
+                "fmt": fmt,
+                "path_to_fmt": str(tmp_path),
+                "encoding": {
+                    "aspin": r"m([0-9]+(\.[0-9]+)?|\.[0-9]+)"
+                },
+            }
+        )
+
     ENCODINGS_YAML.write_text(yaml.safe_dump(y, sort_keys=False), encoding="utf-8")
 
     yield
-
-    y = yaml.safe_load(ENCODINGS_YAML.read_text(encoding="utf-8")) or {}
-    if y.get("data"):
-        y["data"].pop()
-        ENCODINGS_YAML.write_text(yaml.safe_dump(y, sort_keys=False), encoding="utf-8")
 
 def spin_format(val):
     if val == 0:
