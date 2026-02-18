@@ -19,6 +19,7 @@ import re
 import parse
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 from .helper_functions import *
 
@@ -76,10 +77,20 @@ class ParaFrame(pd.DataFrame):
         # three characters '{p}'; the maximum number
         # of possible parameters is `len(fmt) // 3`.
 
-        yaml_encodings = find_spec_by_fmt(fmt)
+        encodings = load_encodings_yaml()
+        print(encodings)
+        for i in range(len(encodings)):
+            if encodings[i]['fmt'] in fmt:
+                fmt_enc = encodings[i]['fmt']
+                break
+            else:
+                fmt_enc = fmt
+
+        print(f'fmt_enc = {fmt_enc}')
+        yaml_encodings = find_spec_by_fmt(fmt_enc)
 
         if yaml_encodings is None:
-            raise ValueError(f"Error: The format '{fmt}' is missing from encodings.yaml.")
+            raise ValueError(f"Error: The format '{fmt_enc}' is missing from encodings.yaml.")
 
         needs_encoding = False
         enc_dict = yaml_encodings.get("encoding", {})
@@ -89,14 +100,14 @@ class ParaFrame(pd.DataFrame):
                 needs_encoding = True
                 
         if needs_encoding == True and encoding == False:
-            raise ValueError(f"Error: '{fmt}' has a regex spec, so you must use encoding=True")
+            raise ValueError(f"Error: '{fmt_enc}' has a regex spec, so you must use encoding=True")
             
         if needs_encoding == False and encoding == True:
-            raise ValueError(f"Error: '{fmt}' does not have a regex spec, so you must use encoding=False")
+            raise ValueError(f"Error: '{fmt_enc}' does not have a regex spec, so you must use encoding=False")
 
         # Construct the glob pattern for search files
         pattern = fmt
-        fmt_g = fmt
+        fmt_g = fmt_enc
 
         for i in range(pmax):
             if debug:
@@ -111,6 +122,7 @@ class ParaFrame(pd.DataFrame):
                 kwargs[e.args[0]] = "*"
 
         # Obtain list of files based on the glob pattern
+        print(f'pattern = {pattern}')
         globbed_files = sorted(glob(pattern))
 
         # Print the glob pattern and a summary of matches
@@ -170,18 +182,13 @@ class ParaFrame(pd.DataFrame):
         """
         # Parse list of file names back to parameters
         yaml_encodings, fmt_g, globbed_files = cls.glob_search(fmt, *args, debug=debug, encoding=encoding, **kwargs)
-
         parser = parse.compile(fmt_g)
-        print(fmt_g)
-
+        
         frame = []
         for f in globbed_files:
-            f_name = '/'+Path(f).name
-            dir_name = str(Path(f).parent)
             if encoding:
-                f_new = regex_sub(f_name, yaml_encodings)
-                f_new = dir_name + f_new
-                print(f_new)
+                f_short = str(Path(f).relative_to(Path(yaml_encodings['path_to_fmt'])))
+                f_new = regex_sub(f_short, yaml_encodings)
             else:
                 f_new = f
 

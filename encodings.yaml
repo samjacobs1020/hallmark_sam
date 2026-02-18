@@ -1,14 +1,10 @@
 data:
-  - fmt : "data/{mag:d}_mag{aspin}_w{win:d}.h5"
-    encoding:
-      aspin: "m([0-9]+(\\.[0-9]+)?|\\.[0-9]+)"
-      
-
-  - fmt : "data/a_{a:d}/b_{b:d}.txt"
-    encoding:
-      aspin: ""
-
-  - fmt : "data/a{aspin}/b_{b:d}.txt"
-    encoding:
-      aspin: ""
-      
+- fmt: data/{mag:d}_mag{aspin}_w{win:d}.h5
+  encoding:
+    aspin: m([0-9]+(\.[0-9]+)?|\.[0-9]+)
+- fmt: data/a_{a:d}/b_{b:d}.txt
+  encoding:
+    aspin: ''
+- fmt: data/a{aspin}/b_{b:d}.txt
+  encoding:
+    aspin: ''

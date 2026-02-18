@@ -6,17 +6,17 @@ from hallmark.helper_functions import *
 @pytest.fixture
 def create_ParaFrame(create_temp_data):
     fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
-    return ParaFrame.parse(fmt, debug = True)
+    return ParaFrame.parse(fmt)
 
 @pytest.fixture
 def create_ParaFrame_spin(create_temp_data_spin):
     fmt = str(create_temp_data_spin / "a{aspin}/b_{b:d}.txt")
-    return ParaFrame.parse(fmt, debug = True)
+    return ParaFrame.parse(fmt)
 
 @pytest.fixture
 def create_ParaFrame_spin_with_m(create_temp_data_spin_with_m):
     fmt = str(create_temp_data_spin_with_m / '{mag:d}_mag{aspin}_w{win:d}.h5')
-    return ParaFrame.parse(fmt,encoding=True, debug = True)
+    return ParaFrame.parse(fmt,encoding=True)
 
 def test_type_of_ParaFrame(create_ParaFrame):
     assert isinstance(create_ParaFrame, ParaFrame)

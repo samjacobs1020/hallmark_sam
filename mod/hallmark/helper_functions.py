@@ -4,7 +4,7 @@ import re
 
 ENCODINGS_YAML = Path(__file__).parents[2] / "encodings.yaml"
 
-def load_encodings_yaml(index=0, path=ENCODINGS_YAML):
+def load_encodings_yaml(path=ENCODINGS_YAML):
 
     f = path.open("r", encoding="utf-8")
     yaml_file = yaml.safe_load(f)
