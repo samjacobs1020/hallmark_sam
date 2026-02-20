@@ -5,16 +5,10 @@ from pathlib import Path
 
 ENCODINGS_YAML = Path(__file__).parents[1] / "encodings.yaml"
 
-import pytest
-import yaml
-from pathlib import Path
-
-ENCODINGS_YAML = Path(__file__).parents[1] / "encodings.yaml"
-
-
 @pytest.fixture(scope="session", autouse=True)
 def _backup_and_restore_encodings_yaml():
     original_text = ENCODINGS_YAML.read_text(encoding="utf-8")
+    ENCODINGS_YAML.write_text("data: []\n", encoding="utf-8")
 
     yield  # all tests run
 
@@ -23,6 +17,7 @@ def _backup_and_restore_encodings_yaml():
 
 @pytest.fixture(scope="function", autouse=True)
 def _append_tmp_path_entries_to_encodings_yaml(tmp_path, request):
+    ENCODINGS_YAML.write_text("data: []\n", encoding="utf-8")
     y = yaml.safe_load(ENCODINGS_YAML.read_text(encoding="utf-8")) or {}
     y.setdefault("data", [])
 

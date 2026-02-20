@@ -72,7 +72,7 @@ class ParaFrame(pd.DataFrame):
         return self[mask]
 
     @classmethod
-    def glob_search(cls, fmt, *args, debug=False, return_pattern=False, encoding=False, **kwargs):
+    def glob_search(cls, fmt, *args, debug=False, return_pattern=False, encoding=True, **kwargs):
         pmax = len(fmt) // 3  # to specify a parameter, we need at least
         # three characters '{p}'; the maximum number
         # of possible parameters is `len(fmt) // 3`.
@@ -142,7 +142,7 @@ class ParaFrame(pd.DataFrame):
             return (yaml_encodings, fmt_g, globbed_files)
 
     @classmethod
-    def parse(cls, fmt, *args, debug=False, encoding=False, **kwargs):
+    def parse(cls, fmt, *args, debug=False, encoding=True, **kwargs):
         """
         Construct a ``ParaFrame`` by parsing file paths that match a pattern.
 
