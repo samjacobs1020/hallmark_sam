@@ -78,7 +78,6 @@ class ParaFrame(pd.DataFrame):
         # of possible parameters is `len(fmt) // 3`.
 
         encodings = load_encodings_yaml()
-        print(encodings)
         for i in range(len(encodings)):
             if encodings[i]['fmt'] in fmt:
                 fmt_enc = encodings[i]['fmt']
@@ -86,7 +85,6 @@ class ParaFrame(pd.DataFrame):
             else:
                 fmt_enc = fmt
 
-        print(f'fmt_enc = {fmt_enc}')
         yaml_encodings = find_spec_by_fmt(fmt_enc)
 
         
@@ -133,7 +131,6 @@ class ParaFrame(pd.DataFrame):
                 kwargs[e.args[0]] = "*"
 
         # Obtain list of files based on the glob pattern
-        print(f'pattern = {pattern}')
         globbed_files = sorted(glob(pattern))
 
         # Print the glob pattern and a summary of matches

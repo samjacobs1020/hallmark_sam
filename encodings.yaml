@@ -1,5 +1,5 @@
 data:
-- fmt: data/{mag:d}_mag{aspin}_w{win:d}.h5
+- fmt: data/{mag:d}a{aspin}_w{win:d}.h5
   path_to_fmt: m5/
   encoding:
     aspin: m([0-9]+(\.[0-9]+)?|\.[0-9]+)
