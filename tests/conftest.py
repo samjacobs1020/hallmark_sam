@@ -2,44 +2,36 @@ import pytest
 import shutil
 import yaml
 from pathlib import Path
+import hallmark
+from hallmark import ParaFrame
 
-ENCODINGS_YAML = Path(__file__).parents[1] / "encodings.yaml"
+ORIGINAL_YAML = Path("demos/data/.hallmark.yaml")
 
-@pytest.fixture(scope="session", autouse=True)
-def _backup_and_restore_encodings_yaml():
-    original_text = ENCODINGS_YAML.read_text(encoding="utf-8")
-    ENCODINGS_YAML.write_text("data: []\n", encoding="utf-8")
-
-    yield  # all tests run
-
-    ENCODINGS_YAML.write_text(original_text, encoding="utf-8")
-
+@pytest.fixture(scope="function")
+def encodings_yaml(tmp_path):
+    tmp_yaml = tmp_path / ".hallmark.yaml"
+    shutil.copy2(ORIGINAL_YAML, tmp_yaml)
+    hallmark.set_rel_yaml_path(tmp_yaml)
+    return tmp_yaml
 
 @pytest.fixture(scope="function", autouse=True)
-def _append_tmp_path_entries_to_encodings_yaml(tmp_path, request):
-    ENCODINGS_YAML.write_text("data: []\n", encoding="utf-8")
-    y = yaml.safe_load(ENCODINGS_YAML.read_text(encoding="utf-8")) or {}
+def _append_tmp_path_entries_to_encodings_yaml(tmp_path, encodings_yaml):
+    encodings_yaml.write_text("data: []\n", encoding="utf-8")
+    y = yaml.safe_load(encodings_yaml.read_text(encoding="utf-8")) or {}
     y.setdefault("data", [])
-
     fmts = [
-        "data/a_{a:d}/b_{b:d}.txt",
-        "data/a{aspin}/b_{b:d}.txt",
-        "data/{mag:d}_mag{aspin}_w{win:d}.h5",
+        "/a_{a:d}/b_{b:d}.txt",
+        "/a{aspin}/b_{b:d}.txt",
+        "/{mag:d}_mag{aspin}_w{win:d}.h5",
     ]
-
     for fmt in fmts:
         y["data"].append(
             {
                 "fmt": fmt,
-                "path_to_fmt": str(tmp_path),
-                "encoding": {
-                    "aspin": r"m([0-9]+(\.[0-9]+)?|\.[0-9]+)"
-                },
+                "encoding": {"aspin": r"m([0-9]+(\.[0-9]+)?|\.[0-9]+)"},
             }
         )
-
-    ENCODINGS_YAML.write_text(yaml.safe_dump(y, sort_keys=False), encoding="utf-8")
-
+    encodings_yaml.write_text(yaml.safe_dump(y, sort_keys=False), encoding="utf-8")
     yield
 
 def spin_format(val):
@@ -49,7 +41,7 @@ def spin_format(val):
 
 @pytest.fixture(scope = "function")
 def create_temp_data(tmp_path):
-    data_dir = tmp_path / "data"
+    data_dir = tmp_path
     print(data_dir)
     for a in range(10):
         subdir = data_dir / f"a_{a}"
@@ -60,7 +52,7 @@ def create_temp_data(tmp_path):
 
 @pytest.fixture(scope = "function")
 def create_temp_data_spin(tmp_path):
-    data_dir = tmp_path / "data"
+    data_dir = tmp_path
     spins = [-0.5, 0.0, 0.5]
     for a in spins:
         subdir = data_dir / f"a{spin_format(a)}"
@@ -71,8 +63,7 @@ def create_temp_data_spin(tmp_path):
 
 @pytest.fixture(scope = "function")
 def create_temp_data_spin_with_m(tmp_path):
-    data_dir = tmp_path / "data"
-    data_dir.mkdir(parents=True)
+    data_dir = tmp_path
     spins = ["m0.5", "0", "0.5"]
     
     for mag in range(0, 2):   

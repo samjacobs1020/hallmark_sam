@@ -105,9 +105,9 @@ class ParaFrame(pd.DataFrame):
                     if enc_dict[key] != "":
                         needs_encoding = True
         
-        # for key in enc_dict:
-        #     if enc_dict[key] != "":
-        #         needs_encoding = True
+        for key in enc_dict:
+            if enc_dict[key] != "":
+                needs_encoding = True
                 
         if needs_encoding == True and encoding == False:
             raise ValueError(f"Error: '{fmt_enc}' has a regex spec, so you must use encoding=True")
@@ -118,6 +118,7 @@ class ParaFrame(pd.DataFrame):
         # Construct the glob pattern for search files
         base = str(get_rel_yaml_path().parent)
         pattern = base + fmt
+        print(pattern)
         fmt_g = fmt_enc.lstrip("/")
         
         for i in range(pmax):

@@ -3,7 +3,7 @@ import pytest
 
 def test_paraframe_class_functionality(create_temp_data):
     # a user wants to create a paraframe
-    fmt = str(create_temp_data / "a_{a:d}/b_{b:d}.txt")
+    fmt = str("/a_{a:d}/b_{b:d}.txt")
     pf = ParaFrame.parse(fmt, encoding=True)
 
     # users wants to filter files to see those with a = 0
