@@ -14,4 +14,4 @@
 # limitations under the License.
 
 from .core import ParaFrame as ParaFrame
-from .helper_functions import set_rel_yaml_path
+from .helper_functions import set_rel_yaml_path as set_rel_yaml_path
