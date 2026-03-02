@@ -63,9 +63,12 @@ def test_parse_method_with_added_filter_arg(create_temp_data):
     assert pf.shape == (10, 3)
     assert pf["a"].unique() == 0
 
-def test_glob_method_accepts_spin_formatter_type_and_builds_glob_method(create_temp_data_spin):
+def test_glob_accepts_spin_formatter_type_and_builds_glob_method(create_temp_data_spin):
     fmt = str("/a{aspin}/b_{b:d}.txt")
-    files, pattern = ParaFrame.glob_search(fmt, encoding = True, aspin="+0.5", return_pattern=True)
+    files, pattern = ParaFrame.glob_search(fmt, 
+                                           encoding = True, 
+                                           aspin="+0.5", 
+                                           return_pattern=True)
     norm = pattern.replace("\\", "/") # standardize output for Mac and PC OS
     assert norm.endswith("/a+0.5/b_*.txt")
     assert len(files) == 10

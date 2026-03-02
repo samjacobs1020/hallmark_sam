@@ -3,7 +3,6 @@ import shutil
 import yaml
 from pathlib import Path
 import hallmark
-from hallmark import ParaFrame
 
 ORIGINAL_YAML = Path("demos/data/.hallmark.yaml")
 

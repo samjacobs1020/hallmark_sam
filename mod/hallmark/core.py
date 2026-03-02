@@ -72,7 +72,8 @@ class ParaFrame(pd.DataFrame):
         return self[mask]
 
     @classmethod
-    def glob_search(cls, fmt, *args, debug=False, return_pattern=False, encoding=False, **kwargs):
+    def glob_search(cls, fmt, *args, debug=False, return_pattern=False, 
+                    encoding=False, **kwargs):
         
         pmax = len(fmt) // 3  # to specify a parameter, we need at least
         # three characters '{p}'; the maximum number
@@ -91,10 +92,11 @@ class ParaFrame(pd.DataFrame):
         
 
         if yaml_encodings is None:
-            raise ValueError(f"Error: The format '{fmt_enc}' is missing from .hallmark.yaml.")
+            raise ValueError(
+                f"Error: The format '{fmt_enc}' is missing from .hallmark.yaml."
+            )
 
         needs_encoding = False
-        #enc_dict = yaml_encodings.get("encoding", {})
         
         for i in range(len(encodings)):
             if 'encoding' not in encodings[i].keys():
@@ -109,12 +111,18 @@ class ParaFrame(pd.DataFrame):
             if enc_dict[key] != "":
                 needs_encoding = True
                 
-        if needs_encoding == True and encoding == False:
-            raise ValueError(f"Error: '{fmt_enc}' has a regex spec, so you must use encoding=True")
-            
-        if needs_encoding == False and encoding == True:
-            raise ValueError(f"Error: '{fmt_enc}' does not have a regex spec, so you must use encoding=False")
+        if needs_encoding and not encoding:
+            raise ValueError(
+                f'''Error: '{fmt_enc}' has a regex spec, 
+                so you must use encoding=True'''
+            )
 
+        if not needs_encoding and encoding:
+            raise ValueError(
+                f'''Error: '{fmt_enc}' does not have a 
+                regex spec, so you must use encoding=False'''
+            )
+        
         # Construct the glob pattern for search files
         base = str(get_rel_yaml_path().parent)
         pattern = base + fmt
@@ -137,7 +145,7 @@ class ParaFrame(pd.DataFrame):
         globbed_files = sorted(glob(pattern))
 
         # Print the glob pattern and a summary of matches
-        if debug == True:
+        if debug:
             print(f'Pattern: "{pattern}"')
             n = len(globbed_files)
             if n > 1:
@@ -145,7 +153,7 @@ class ParaFrame(pd.DataFrame):
             elif n > 0:
                 print(f'{n} match, i.e., "{globbed_files[0]}"')
             else:
-                print(f"No match; please check format string")
+                print("No match; please check format string")
 
         if return_pattern:
             return (globbed_files, pattern)
@@ -192,7 +200,10 @@ class ParaFrame(pd.DataFrame):
         1  data/run2_p20.csv  2   20
         """
         # Parse list of file names back to parameters
-        yaml_encodings, fmt_g, globbed_files = cls.glob_search(fmt, *args, debug=debug, encoding=encoding, **kwargs)
+        yaml_encodings, fmt_g, globbed_files = cls.glob_search(fmt, *args, 
+                                                               debug=debug, 
+                                                               encoding=encoding,
+                                                                **kwargs)
         parser = parse.compile(fmt_g)
         
         frame = []
