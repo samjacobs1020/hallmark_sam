@@ -16,6 +16,7 @@
 from glob import glob
 
 import re
+import os
 import parse
 import pandas as pd
 import numpy as np
@@ -37,11 +38,24 @@ class ParaFrame(pd.DataFrame):
       parameters from a format pattern (using ``glob`` + ``parse``).
     * ``__call__``/``filter``: convenience filtering by column values.
     """
+    def __init__(self, data = None, repo_path = None, **kwargs):
+        super().__init__(data, **kwargs)
+        self.repo_path = repo_path
 
+            
     @property
-    def _constructor(self):
-        return ParaFrame
-
+    def _constructor(self): #, path = None
+        if self.repo_path is None:
+            self.repo_path = os.path.getcwd()
+            print(f"Using current working directory as repo path: {self.repo_path}")
+        if self.repo_path != get_rel_yaml_path().parent:
+            raise ValueError(
+                f"Error: repo_path '{self.repo_path}' does not match the directory of .hallmark.yaml: '{get_rel_yaml_path().parent}'"
+            )
+        def _c(*args, **kwargs):
+            ParaFrame(*args, repo_path=self)
+        return _c
+    
     def __call__(self, **kwds):
         return self.filter(**kwds)
 
@@ -127,7 +141,12 @@ class ParaFrame(pd.DataFrame):
             )
         
         # Construct the glob pattern for search files
-        base = str(get_rel_yaml_path().parent)
+        if get_rel_yaml_path() is not None:
+            base = str(get_rel_yaml_path().parent)
+        else:
+            base = str(self.repo_path)
+
+        # base = str(get_rel_yaml_path().parent)
         pattern = base + fmt
         print(pattern)
         fmt_g = fmt_enc.lstrip("/")

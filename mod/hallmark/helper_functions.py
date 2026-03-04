@@ -4,10 +4,12 @@ import re
 
 _user_yaml_path = None
 
-def set_rel_yaml_path(path):
-    global _user_yaml_path
-    _user_yaml_path = Path(path).resolve()
-
+def set_rel_yaml_path(path = None):
+    from .core import ParaFrame
+    if ParaFrame.repo_path is None:
+        global _user_yaml_path
+        _user_yaml_path = Path(path)
+        _user_yaml_path = Path(str(_user_yaml_path) + '/' )   
 def get_rel_yaml_path():
     if _user_yaml_path is not None:
         return _user_yaml_path
