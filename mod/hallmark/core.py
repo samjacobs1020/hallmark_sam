@@ -16,7 +16,6 @@
 from glob import glob
 
 import re
-import os
 import parse
 import pandas as pd
 import numpy as np
@@ -224,7 +223,9 @@ class ParaFrame(pd.DataFrame):
         frame = []
 
         for f in globbed_files:
-            f_short = str(Path(f).relative_to(get_rel_yaml_path(repo_path=repo_path).parent))
+            f_short = str(Path(f).relative_to(
+                get_rel_yaml_path(repo_path=repo_path).parent
+                ))
             if encoding:
                 f_new = regex_sub(f_short, yaml_encodings)
             else:

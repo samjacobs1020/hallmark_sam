@@ -19,7 +19,6 @@ def get_rel_yaml_path(repo_path=None):
 
 def load_encodings_yaml(repo_path=None):
     path = get_rel_yaml_path(repo_path=repo_path)
-    yaml_path = path.resolve()
     f = path.open("r", encoding="utf-8")
     yaml_file = yaml.safe_load(f)
     encodings = yaml_file["data"]
