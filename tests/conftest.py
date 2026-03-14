@@ -10,7 +10,8 @@ ORIGINAL_YAML = Path("demos/data/.hallmark.yaml")
 def encodings_yaml(tmp_path):
     tmp_yaml = tmp_path / ".hallmark.yaml"
     shutil.copy2(ORIGINAL_YAML, tmp_yaml)
-    hallmark.set_rel_yaml_path(tmp_yaml)
+    # hallmark.set_rel_yaml_path(tmp_yaml)
+    hallmark.set_rel_yaml_path(tmp_path)
     return tmp_yaml
 
 @pytest.fixture(scope="function", autouse=True)

@@ -38,22 +38,16 @@ class ParaFrame(pd.DataFrame):
       parameters from a format pattern (using ``glob`` + ``parse``).
     * ``__call__``/``filter``: convenience filtering by column values.
     """
-    def __init__(self, data = None, repo_path = None, **kwargs):
+    _metadata = ["repo_path"]
+    def __init__(self, data=None, repo_path=None, **kwargs):
         super().__init__(data, **kwargs)
         self.repo_path = repo_path
 
-            
     @property
-    def _constructor(self): #, path = None
-        if self.repo_path is None:
-            self.repo_path = os.path.getcwd()
-            print(f"Using current working directory as repo path: {self.repo_path}")
-        if self.repo_path != get_rel_yaml_path().parent:
-            raise ValueError(
-                f"Error: repo_path '{self.repo_path}' does not match the directory of .hallmark.yaml: '{get_rel_yaml_path().parent}'"
-            )
+    def _constructor(self):
         def _c(*args, **kwargs):
-            ParaFrame(*args, repo_path=self)
+            kwargs.setdefault("repo_path", self.repo_path)
+            return ParaFrame(*args, **kwargs)
         return _c
     
     def __call__(self, **kwds):
@@ -89,14 +83,14 @@ class ParaFrame(pd.DataFrame):
         return self[mask]
 
     @classmethod
-    def glob_search(cls, fmt, *args, debug=False, return_pattern=False, 
-                    encoding=False, **kwargs):
+    def glob_search(cls, fmt, *args, repo_path=None, debug=False, return_pattern=False,
+                encoding=False, **kwargs):
         
         pmax = len(fmt) // 3  # to specify a parameter, we need at least
         # three characters '{p}'; the maximum number
         # of possible parameters is `len(fmt) // 3`.
 
-        encodings = load_encodings_yaml()
+        encodings = load_encodings_yaml(repo_path=repo_path)
         for i in range(len(encodings)):
             if encodings[i]['fmt'] in fmt:
                 fmt_enc = encodings[i]['fmt']
@@ -104,7 +98,7 @@ class ParaFrame(pd.DataFrame):
             else:
                 fmt_enc = fmt
 
-        yaml_encodings = find_spec_by_fmt(fmt_enc)
+        yaml_encodings = find_spec_by_fmt(fmt_enc, repo_path=repo_path)
 
         
 
@@ -141,14 +135,12 @@ class ParaFrame(pd.DataFrame):
             )
         
         # Construct the glob pattern for search files
-        if get_rel_yaml_path() is not None:
-            base = str(get_rel_yaml_path().parent)
-        else:
-            base = str(self.repo_path)
+        base = str(get_rel_yaml_path(repo_path=repo_path).parent)
 
-        # base = str(get_rel_yaml_path().parent)
-        pattern = base + fmt
-        print(pattern)
+        # pattern = base + fmt
+        pattern = str(Path(base) / fmt.lstrip("/"))
+
+        print(f'Pattern: {pattern}')
         fmt_g = fmt_enc.lstrip("/")
         
         for i in range(pmax):
@@ -183,7 +175,7 @@ class ParaFrame(pd.DataFrame):
             return (yaml_encodings, fmt_g, globbed_files)
 
     @classmethod
-    def parse(cls, fmt, *args, debug=False, encoding=False, **kwargs):
+    def parse(cls, fmt, *args, repo_path=None, debug=False, encoding=False, **kwargs):
         """
         Construct a ``ParaFrame`` by parsing file paths that match a pattern.
 
@@ -223,6 +215,7 @@ class ParaFrame(pd.DataFrame):
         """
         # Parse list of file names back to parameters
         yaml_encodings, fmt_g, globbed_files = cls.glob_search(fmt, *args, 
+                                                               repo_path=repo_path,
                                                                debug=debug, 
                                                                encoding=encoding,
                                                                 **kwargs)
@@ -231,7 +224,7 @@ class ParaFrame(pd.DataFrame):
         frame = []
 
         for f in globbed_files:
-            f_short = str(Path(f).relative_to(Path(get_rel_yaml_path().parent)))
+            f_short = str(Path(f).relative_to(get_rel_yaml_path(repo_path=repo_path).parent))
             if encoding:
                 f_new = regex_sub(f_short, yaml_encodings)
             else:
@@ -242,4 +235,4 @@ class ParaFrame(pd.DataFrame):
                 print(f'Failed to parse "{f}"')
             else:
                 frame.append({'path': f_short, **r.named})
-        return cls(frame)
+        return cls(frame, repo_path=repo_path)
