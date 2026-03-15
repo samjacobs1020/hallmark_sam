@@ -32,9 +32,13 @@ class ParaFrame(pd.DataFrame):
     parameterized file discovery and filtering.
 
     ``ParaFrame`` instances behave like ordinary DataFrames but add:
-
+    * ``__init__``: Initialises the class and adds the repo_path as metadata
+        to the ParaFrame. 
+    * ``_constructor``: Returns the subclassed ParaFrame with repo_path as a
+        default keyword argument.
+    * ``glob_search'': Returns files found in the directory using format string.
     * ``parse``: a classmethod that builds a table of file paths and parsed
-      parameters from a format pattern (using ``glob`` + ``parse``).
+        parameters from a format pattern (using ``glob`` + ``parse``).
     * ``__call__``/``filter``: convenience filtering by column values.
     """
     _metadata = ["repo_path"]
@@ -62,11 +66,11 @@ class ParaFrame(pd.DataFrame):
         any of the provided conditions.
 
         Args:
-         **kwargs: Arbitrary keyword arguments specifying column names
+        **kwargs: Arbitrary keyword arguments specifying column names
              and values to filter by.
-            * If the value is a tuple or list, rows where the column
+        * If the value is a tuple or list, rows where the column
                matches any of those values are selected.
-            * If the value is a scalar, rows where the column equals
+        * If the value is a scalar, rows where the column equals
                the value are selected.
 
         Returns:
@@ -75,7 +79,7 @@ class ParaFrame(pd.DataFrame):
         """
         mask = [False] * len(self)
         for k, v in kwargs.items():
-            if isinstance(v, (tuple, list)):
+            if isinstance(v, (tuple, list)): # looking through the specified conditions
                 mask |= np.isin(np.array(self[k]), np.array(v))
             else:
                 mask |= np.array(self[k]) == v
@@ -84,6 +88,37 @@ class ParaFrame(pd.DataFrame):
     @classmethod
     def glob_search(cls, fmt, *args, repo_path=None, debug=False, return_pattern=False,
                 encoding=False, **kwargs):
+        """
+        Find all the files specified in a directory using the format string specified.
+
+        This function utilizes the provided format string to find the specified
+        files. This function also looks through .yaml files if encoding = True
+        and evaluates conditionals.
+
+        Args:
+        fmt (str): A format string specifying the expected file naming
+            pattern.
+            Fields wrapped in ``{}`` will be extracted into columns.
+        *args: Positional arguments used to fill the format string.
+        repo_path (optional): Path to the .yaml file in the repo.
+            Defaults to None.
+        debug (bool, optional): If True, prints debugging information
+            about the matching process.
+            Defaults to False.
+        return_pattern (bool, optional): Returns the pattern and globbed files.
+            Defaults to False.
+        encodings (bool,optional): If True, looks for the .yaml file and
+            extracts user specified format information.
+            Defaults to False.
+        **kwargs: Keyword arguments used to fill the format string.
+            If missing keys are encountered, they will be replaced by
+            a wildcard ``*`` for globbing.
+
+        Returns:
+         if return_pattern = True, it returns the pattern and the globbed files.
+         Else, it returns the globbed files, the format string with the wildcards
+         and the user specification in the .yaml file (None, if encoding = False).
+        """
         
         pmax = len(fmt) // 3  # to specify a parameter, we need at least
         # three characters '{p}'; the maximum number
@@ -98,9 +133,8 @@ class ParaFrame(pd.DataFrame):
                 fmt_enc = fmt
 
         yaml_encodings = find_spec_by_fmt(fmt_enc, repo_path=repo_path)
-
         
-
+        # Conditionals checking .yaml file and user specifications are consistent.
         if yaml_encodings is None:
             raise ValueError(
                 f"Error: The format '{fmt_enc}' is missing from .hallmark.yaml."
@@ -190,8 +224,13 @@ class ParaFrame(pd.DataFrame):
             pattern.
             Fields wrapped in ``{}`` will be extracted into columns.
         *args: Positional arguments used to fill the format string.
+        repo_path (optional): Path to the .yaml file in the repo.
+            Defaults to None.
         debug (bool, optional): If True, prints debugging information
             about the matching process.
+            Defaults to False.
+        encodings (bool,optional): If True, looks for the .yaml file and
+            extracts user specified format information.
             Defaults to False.
         **kwargs: Keyword arguments used to fill the format string.
             If missing keys are encountered, they will be replaced by
@@ -221,7 +260,7 @@ class ParaFrame(pd.DataFrame):
         parser = parse.compile(fmt_g)
         
         frame = []
-
+        # Writing the ParaFrame
         for f in globbed_files:
             f_short = str(Path(f).relative_to(
                 get_rel_yaml_path(repo_path=repo_path).parent
