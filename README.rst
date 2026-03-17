@@ -51,7 +51,8 @@ the result into a ``pandas`` ``DataFrame``.
 ``ParaFrame`` uses python `parse` to parse the file paths.
 Because ``parse`` is the opposite of ``format``, this means the format string
 used to generate the surveys and libraries in the first place can be
-reused.
+reused. It can also handle special formatting cases with user specifications
+through .yaml files.
 In addition, ``ParaFrame`` has a nice interface to perform filter, which
 makes parameter selection much easier than pure ``pandas``.
 

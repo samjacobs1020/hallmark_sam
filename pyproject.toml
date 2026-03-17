@@ -26,6 +26,7 @@ dependencies =[
     "numpy",
     "pandas",
     "parse",
+    "PyYAML",
 ]
 
 [tool.setuptools.packages.find]
