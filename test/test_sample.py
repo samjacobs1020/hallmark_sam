@@ -1,4 +1,4 @@
-# Copyright 2025 the Hallmark Authors
+# Copyright 2026 the Hallmark Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +13,15 @@
 # limitations under the License.
 
 
-
-"""Hallmark python public API"""
-
-
-from .repo import Repo
+"""Error hierarchy for Hallmark."""
 
 
-__all__ = ["Repo"]
+from git.exc import GitError
 
 
+class HallmarkError(RuntimeError):
+    """Base exception for Hallmark-specific failures."""
 
-from .paraframe import ParaFrame as ParaFrame
-from .helper_functions import set_rel_yaml_path as set_rel_yaml_path
 
+class DothmError(HallmarkError, GitError):
+    """Raised for `.hm` repository validation and access failures."""
