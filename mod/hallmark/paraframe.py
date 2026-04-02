@@ -14,17 +14,14 @@
 # limitations under the License.
 
 from glob import glob
+from pathlib import Path
 
 import re
 import parse
 import pandas as pd
 import numpy as np
-from pathlib import Path
 
-from .helper_functions import (get_rel_yaml_path, 
-                                load_encodings_yaml, 
-                                find_spec_by_fmt, 
-                                regex_sub)
+from .helper_functions import find_spec_by_fmt, regex_sub
 
 class ParaFrame(pd.DataFrame):
     """
@@ -32,7 +29,10 @@ class ParaFrame(pd.DataFrame):
     parameterized file discovery and filtering.
 
     ``ParaFrame`` instances behave like ordinary DataFrames but add:
-    * ``__init__``: Initialises the class and adds the repo_path as metadata
+
+
+    * ``__init__``: Initialises the class and stores ``encodings`` and 
+      ``base_path`` as metadata
         to the ParaFrame. 
     * ``_constructor``: Returns the subclassed ParaFrame with repo_path as a
         default keyword argument.
@@ -41,15 +41,19 @@ class ParaFrame(pd.DataFrame):
         parameters from a format pattern (using ``glob`` + ``parse``).
     * ``__call__``/``filter``: convenience filtering by column values.
     """
-    _metadata = ["repo_path"]
-    def __init__(self, data=None, repo_path=None, **kwargs):
+
+    _metadata = ["encodings", "base_path"]
+
+    def __init__(self, data=None, encodings=None, base_path = None, **kwargs):
         super().__init__(data, **kwargs)
-        self.repo_path = repo_path
+        self.encodings = encodings or {}
+        self.base_path = Path(base_path) if base_path is not None else Path.cwd()
 
     @property
     def _constructor(self):
         def _c(*args, **kwargs):
-            kwargs.setdefault("repo_path", self.repo_path)
+            kwargs.setdefault("encodings", self.encodings)
+            kwargs.setdefault("base_path", self.base_path)
             return ParaFrame(*args, **kwargs)
         return _c
     
@@ -77,7 +81,7 @@ class ParaFrame(pd.DataFrame):
          pandas.DataFrame: A filtered DataFrame containing only rows
              that match the given conditions.
         """
-        mask = [False] * len(self)
+        mask = np.zeros(len(self), dtype = bool)
         for k, v in kwargs.items():
             if isinstance(v, (tuple, list)): # looking through the specified conditions
                 mask |= np.isin(np.array(self[k]), np.array(v))
@@ -86,7 +90,9 @@ class ParaFrame(pd.DataFrame):
         return self[mask]
 
     @classmethod
-    def glob_search(cls, fmt, *args, repo_path=None, debug=False, return_pattern=False,
+    def glob_search(cls, fmt, *args, 
+                encodings=None, base_path=None, 
+                debug=False, return_pattern=False,
                 encoding=False, **kwargs):
         """
         Find all the files specified in a directory using the format string specified.
@@ -100,8 +106,11 @@ class ParaFrame(pd.DataFrame):
             pattern.
             Fields wrapped in ``{}`` will be extracted into columns.
         *args: Positional arguments used to fill the format string.
-        repo_path (optional): Path to the .yaml file in the repo.
-            Defaults to None.
+        encodings (dict):   The ``encodings`` list from ``State``
+            (contents of ``config.yml``).
+            Defaults to ``{}``.
+        base_path (Path):   Root directory to search from.
+            Defaults to ``Path.cwd()``.
         debug (bool, optional): If True, prints debugging information
             about the matching process.
             Defaults to False.
@@ -119,61 +128,47 @@ class ParaFrame(pd.DataFrame):
          Else, it returns the globbed files, the format string with the wildcards
          and the user specification in the .yaml file (None, if encoding = False).
         """
-        
+        encodings  = encodings  or {}
+        base_path  = Path(base_path) if base_path is not None else Path.cwd()
+
         pmax = len(fmt) // 3  # to specify a parameter, we need at least
         # three characters '{p}'; the maximum number
         # of possible parameters is `len(fmt) // 3`.
 
-        encodings = load_encodings_yaml(repo_path=repo_path)
-        for i in range(len(encodings)):
-            if encodings[i]['fmt'] in fmt:
-                fmt_enc = encodings[i]['fmt']
-                break
-            else:
-                fmt_enc = fmt
+        fmt_enc = fmt
+        enc_dict = {}
+        needs_encoding = None
 
-        yaml_encodings = find_spec_by_fmt(fmt_enc, repo_path=repo_path)
-        
-        # Conditionals checking .yaml file and user specifications are consistent.
-        if yaml_encodings is None:
-            raise ValueError(
-                f"Error: The format '{fmt_enc}' is missing from .hallmark.yaml."
-            )
+        if encoding:
+            for entry in encodings:
+                if entry.get("fmt") in fmt:
+                    fmt_enc = entry["fmt"]
+                    break
 
-        needs_encoding = False
-        
-        for i in range(len(encodings)):
-            if 'encoding' not in encodings[i].keys():
-                needs_encoding = False
-            else:
-                enc_dict = yaml_encodings.get("encoding", {})
-                for key in enc_dict:
-                    if enc_dict[key] != "":
-                        needs_encoding = True
-        
-        for key in enc_dict:
-            if enc_dict[key] != "":
-                needs_encoding = True
-                
-        if needs_encoding and not encoding:
-            raise ValueError(
-                f'''Error: '{fmt_enc}' has a regex spec, 
-                so you must use encoding=True'''
-            )
+            yaml_encodings = find_spec_by_fmt(fmt_enc, encodings)
+            
+            # Conditionals checking .yaml file and user specifications are consistent.
+            if yaml_encodings is None:
+                raise ValueError(
+                    f"Error: The format '{fmt_enc}' is missing from hallmark.yml."
+                )
 
-        if not needs_encoding and encoding:
-            raise ValueError(
-                f'''Error: '{fmt_enc}' does not have a 
-                regex spec, so you must use encoding=False'''
-            )
+            enc_dict       = yaml_encodings.get("encoding", {})
+            needs_encoding = any(v != "" for v in enc_dict.values())
+            if not needs_encoding and encoding:
+                raise ValueError(
+                    f"'{fmt_enc}' has no regex spec; use encoding=False."
+                )
+        else:
+            yaml_encodings = {}
         
-        # Construct the glob pattern for search files
-        base = str(get_rel_yaml_path(repo_path=repo_path).parent)
+        if needs_encoding is not None and not encoding:
+                raise ValueError(
+                    f"'{fmt_enc}' has a regex spec; use encoding=True."
+                )
 
         # pattern = base + fmt
-        pattern = str(Path(base) / fmt.lstrip("/"))
-
-        print(f'Pattern: {pattern}')
+        pattern = str(base_path / fmt.lstrip("/"))
         fmt_g = fmt_enc.lstrip("/")
         
         for i in range(pmax):
@@ -183,10 +178,10 @@ class ParaFrame(pd.DataFrame):
                 pattern = pattern.format(*args, **kwargs)
                 break
             except KeyError as e:
-                k = e.args[0]
-                pattern = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":s}", pattern)
-                fmt_g = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":g}", fmt_g)
-                kwargs[e.args[0]] = "*"
+                k         = e.args[0]
+                pattern   = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":s}", pattern)
+                fmt_g     = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":g}", fmt_g)
+                kwargs[k] = "*"
 
         # Obtain list of files based on the glob pattern
         globbed_files = sorted(glob(pattern))
@@ -208,71 +203,59 @@ class ParaFrame(pd.DataFrame):
             return (yaml_encodings, fmt_g, globbed_files)
 
     @classmethod
-    def parse(cls, fmt, *args, repo_path=None, debug=False, encoding=False, **kwargs):
-        """
-        Construct a ``ParaFrame`` by parsing file paths that match a pattern.
-
-        This function searches for files whose names match a formatted
-        string pattern.
-        The pattern can include python-style format fields (e.g.,
-        ``{param}``) that will be extracted as structured information.
-        Matching files are parsed and returned as rows in a pandas
-        DataFrame.
-
-        Args:
-        fmt (str): A format string specifying the expected file naming
-            pattern.
-            Fields wrapped in ``{}`` will be extracted into columns.
-        *args: Positional arguments used to fill the format string.
-        repo_path (optional): Path to the .yaml file in the repo.
-            Defaults to None.
-        debug (bool, optional): If True, prints debugging information
-            about the matching process.
-            Defaults to False.
-        encodings (bool,optional): If True, looks for the .yaml file and
-            extracts user specified format information.
-            Defaults to False.
-        **kwargs: Keyword arguments used to fill the format string.
-            If missing keys are encountered, they will be replaced by
-            a wildcard ``*`` for globbing.
-
-        Returns:
-        pandas.DataFrame: A DataFrame where each row corresponds to a
-        matched file.
-        Includes:
-        * ``path``: the full file path
-        * additional columns extracted from the format fields
-
-        Example:
-        >>> from hallmark import ParaFrame
-        >>> pf = ParaFrame("data/run{run:d}_p{parameter:d}.csv")
-        >>> print(pf)
-           path               run parameter
-        0  data/run1_p10.csv  1   10
-        1  data/run2_p20.csv  2   20
-        """
-        # Parse list of file names back to parameters
-        yaml_encodings, fmt_g, globbed_files = cls.glob_search(fmt, *args, 
-                                                               repo_path=repo_path,
-                                                               debug=debug, 
-                                                               encoding=encoding,
-                                                                **kwargs)
-        parser = parse.compile(fmt_g)
+    def parse(cls, fmt, *args, 
+              encodings=None, base_path=None, 
+              debug=False, encoding=False, **kwargs):
         
+        """Build a ``ParaFrame`` by parsing file paths that match a pattern.
+ 
+        Args:
+            fmt (str):        Format string with ``{param}`` fields.
+            encodings (dict): The ``encodings`` dict from ``State``
+                              (contents of ``hallmark.yml``).
+                              Defaults to ``{}``.
+            base_path (Path): Root directory to search from.
+                              Defaults to ``Path.cwd()``.
+            debug (bool):     Print debug info. Defaults to ``False``.
+            encoding (bool):  Apply regex encoding. Defaults to ``False``.
+ 
+        Returns:
+            ``ParaFrame`` where each row is a matched file with parsed
+            parameters as columns, plus a ``path`` column.
+ 
+        Example:
+            >>> from hallmark import ParaFrame
+            >>> pf = ParaFrame.parse(
+            ...     "/custom_parameter{custom_parameter}_p{parameter}.h5",
+            ...     encoding=True
+            ... )
+        """
+        base_path = Path(base_path) if base_path is not None else Path.cwd()
+
+        yaml_encodings, fmt_g, globbed_files = cls.glob_search(
+            fmt, *args, 
+            encodings=encodings,
+            base_path=base_path,
+            debug=debug, 
+            encoding=encoding,
+            **kwargs
+            )
+        
+        parser = parse.compile(fmt_g)
         frame = []
+
         # Writing the ParaFrame
         for f in globbed_files:
-            f_short = str(Path(f).relative_to(
-                get_rel_yaml_path(repo_path=repo_path).parent
-                ))
+            f_short = str(Path(f).relative_to(base_path))
             if encoding:
                 f_new = regex_sub(f_short, yaml_encodings)
             else:
                 f_new = f_short
 
             r = parser.parse(f_new)
+
             if r is None:
                 print(f'Failed to parse "{f}"')
             else:
                 frame.append({'path': f_short, **r.named})
-        return cls(frame, repo_path=repo_path)
+        return cls(frame, encodings= encodings, base_path=base_path)

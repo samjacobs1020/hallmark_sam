@@ -1,5 +1,4 @@
-# Copyright 2019 Chi-kwan Chan
-# Copyright 2019 Steward Observatory
+# Copyright 2026 the Hallmark Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def inc(x):
-    return x + 1
 
-def test_inc():
-    assert inc(3) == 4
+"""Error hierarchy for Hallmark."""
+
+
+from git.exc import GitError
+
+
+class HallmarkError(RuntimeError):
+    """Base exception for Hallmark-specific failures."""
+
+
+class DothmError(HallmarkError, GitError):
+    """Raised for `.hm` repository validation and access failures."""
