@@ -13,10 +13,12 @@
 # limitations under the License.
 
 
+from __future__ import annotations
+
 from pathlib import Path
 
 
-class Worktree(Path):
+class Worktree(type(Path())):
     """Materialized data root used by indexing and consumer tools.
 
     ``Worktree`` is where file objects are discovered by format string

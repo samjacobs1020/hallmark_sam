@@ -13,6 +13,8 @@
 # limitations under the License.
 
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing      import Optional
 from pathlib     import Path
@@ -75,7 +77,8 @@ class Repo:
             pf = ParaFrame.parse(
                 fstr,
                 base_path = self.worktree,
-                encodings = self.state.config.get("encodings", []) if encoding else None,
+                encodings = self.state.config.get("encodings", [])
+                            if encoding else None,
                 encoding = encoding,
                 )
 
