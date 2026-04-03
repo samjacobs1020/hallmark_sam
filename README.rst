@@ -26,6 +26,40 @@ By using |hallmark|_ with other packages such as |yukon|_ and
 computing infrastructures in a global scale to accelerate their
 science.
 
+``ParaFrame``
+-------------
+
+``ParaFrame`` is a specialized subclass of ``pandas.DataFrame`` that 
+automatically extracts parameters encoded in file paths. When performing 
+large-scale parameter surveys or building simulation libraries, parameters 
+are often encoded directly in file naming schemes (e.g., 
+``Ma+0.94_i70/sed_Rh160.h5``).
+
+Features: 
+
+* **Decodes file paths** back to structured parameters using Python format strings
+* **Builds DataFrames** with parsed parameters as columns
+* **Supports custom encodings** via YAML configuration for complex parsing rules
+* **Provides intuitive filtering** for parameter selection—easier than pure pandas
+
+``Tutorial``
+-------------
+
+Examples of using ``ParaFrame`` with Python API or Command Line Interface (CLI)
+can be found in the Jupyter Notebook tutorials in the ``demos`` folder.
+
+``Installation``
+-----------------
+
+Install |hallmark|_ from PyPI::
+
+    pip install hallmark
+
+Or install from source for development purposes::
+
+    git clone https://github.com/l6a/hallmark.git
+    cd hallmark
+    pip install -e .
 
 ..  |hallmark| replace:: ``hallmark``
 ..  |yukon|    replace:: ``yukon``
@@ -36,28 +70,3 @@ science.
 ..  _yukon:    https://github.com/l6a/yukon
 ..  _banyan:   https://github.com/l6a/banyan
 ..  _eht:      https://eventhorizontelescope.org
-
-
-``ParaFrame``
--------------
-
-When performing large scale parameter surveys and constructing
-simulation libraries, it is common to encode parameter values in the
-file paths.
-Example include ``Ma+0.94_i70/sed_Rh160.h5``.
-|hallmark|_ provides a subclassed ``pandas`` ``DataFrame``, called
-``ParaFrame``, to decode file paths back to proper parameters, and put
-the result into a ``pandas`` ``DataFrame``.
-``ParaFrame`` uses python `parse` to parse the file paths.
-Because ``parse`` is the opposite of ``format``, this means the format string
-used to generate the surveys and libraries in the first place can be
-reused. It can also handle special formatting cases with user specifications
-through .yaml files.
-In addition, ``ParaFrame`` has a nice interface to perform filter, which
-makes parameter selection much easier than pure ``pandas``.
-
-Tutorial
---------
-
-Examples of using ``ParaFrame`` can be found in the Jupyter Notebook ``demos/ParaFrame.ipynb``.
-
