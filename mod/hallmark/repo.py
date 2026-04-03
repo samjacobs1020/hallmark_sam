@@ -113,3 +113,42 @@ class Repo:
             return True
         else:
             return False
+
+    def checkout(self, target_branch: str) -> bool:
+        from shutil import copy2
+        from git.exc import GitCommandError
+
+        if not isinstance(target_branch, str) or not target_branch.strip():
+            raise ValueError("branch name must be a non-empty string")
+
+        if self.worktree is None:
+            raise RuntimeError("cannot checkout a bare repository without a worktree")
+        
+        source = Path(self.worktree).resolve()
+        target = source.parent / target_branch
+        target_dothm = target / ".hm"
+        
+        linked_dothm = None
+        
+        if target_dothm.exists():
+            linked_dothm = Dothm(target_dothm)
+        else:
+            target.mkdir(parents=True, exist_ok=True)
+            existing_branches = {head.name for head in self.dothm.heads}
+            try:
+                if target_branch in existing_branches:
+                    linked_dothm = self.dothm.link(target_dothm, target_branch)
+                else:
+                    self.dothm.git.worktree("add", "-b", target_branch, str(target_dothm))
+                    linked_dothm = Dothm(target_dothm)
+            except GitCommandError as e:
+                raise RuntimeError(f'failed to create worktree for branch "{target_branch}": {e}')
+            
+            target_state = linked_dothm.load()
+            for rel in target_state.data["path"]:
+                rel_path = Path(rel)
+                src = source / rel_path
+                dest = target / rel_path
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                copy2(src, dest)
+        return True

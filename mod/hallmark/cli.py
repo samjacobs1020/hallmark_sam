@@ -103,3 +103,16 @@ def commit(repo, message):
         click.echo("Committed staged state changes.")
     else:
         click.echo("No changes added to commit.")
+
+@hallmark.command(short_help="Checkout to a worktree branch.")
+@click.argument("target_branch")
+@click.pass_obj
+def checkout(repo, target_branch):
+    """Checkout to another worktree branch and restore the state saved in data.tsv.
+
+    This is analogous to `git checkout BRANCH`.
+    """
+    if repo.checkout(target_branch):
+        click.echo(f'Checked out to "{target_branch}".')
+    else:
+        click.echo("No branches to checkout.")
