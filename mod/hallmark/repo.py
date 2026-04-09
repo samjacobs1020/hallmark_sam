@@ -76,7 +76,7 @@ class Repo:
     def init(cls, path: Path | str) -> "Repo":
         dothm_path, worktree_path = cls.lwpaths(path)
         Dothm.init(dothm_path).dump(State())
-        Cache(dothm_path)          # <-- this creates cache at dothm_path directly
+        Cache(dothm_path) 
         worktree_path and Worktree.init(worktree_path)
         return cls(path)
 
