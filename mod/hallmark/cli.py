@@ -34,7 +34,7 @@ def hallmark(ctx):
     Hallmark is a lightweight package designed to version control and
     manage data products in a complex workflow.
     """
-    if ctx.invoked_subcommand in [None, "init"]:
+    if ctx.invoked_subcommand in [None, "init", "clone"]:
         return  # do nothing
 
     try:
