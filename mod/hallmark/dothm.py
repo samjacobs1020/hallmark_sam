@@ -18,7 +18,7 @@ from __future__ import annotations
 from pathlib   import Path
 from functools import cached_property
 
-from git import Repo
+from git import GitCommandError, Repo
 import pandas as pd
 import yaml
 
@@ -61,6 +61,25 @@ See https://l6a.github.io/hallmark/ for `hallmark` usage.
         dothm.index.commit("Initial commit: local `.hm` repository")
         return dothm
 
+    @classmethod
+    def clone(cls, url: str, to_path: Path | str) -> "Dothm":
+        to_path = Path(to_path)
+        
+        try:
+            git_repo = super().clone_from(url, str(to_path))
+            dothm = cls(str(to_path))
+
+            # Validate required files
+            required_files = ["config.yml", "meta.yml", "data.tsv"]
+            for file in required_files:
+                if not (dothm.path / file).exists():
+                    raise DothmError(f'Cloned repository missing required file: {file}')
+            return dothm
+        except GitCommandError as e:
+            raise DothmError(f'Failed to clone from "{url}": {e}')
+        except DothmError:
+            raise
+        
     def link(self, path: Path | str, branch: str | None = None):
         from git.exc import GitCommandError
 

@@ -79,7 +79,19 @@ class Repo:
         Cache(dothm_path) 
         worktree_path and Worktree.init(worktree_path)
         return cls(path)
-
+    
+    @classmethod
+    def clone(cls, url: str, path: Path | str) -> "Repo":
+        dothm_path, worktree_path = cls.lwpaths(path)
+        
+        Dothm.clone(url, dothm_path)
+        
+        # Initialize worktree if non-bare
+        if worktree_path:
+            Worktree.init(worktree_path)
+        
+        return cls(path)
+    
     @staticmethod
     def checksum(path: Path, chunk_size: int = 1024 * 1024) -> str:
         digest = sha1()

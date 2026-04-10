@@ -20,6 +20,7 @@ import click
 
 from click   import ClickException
 from git.exc import GitError
+from .error import DothmError
 
 from . import Repo  # from "__init__.py"
 
@@ -116,3 +117,17 @@ def checkout(repo, target_branch):
         click.echo(f'Checked out to "{target_branch}".')
     else:
         click.echo("No branches to checkout.")
+
+@hallmark.command(short_help="Clone a hallmark repository from a remote URL.")
+@click.argument("url")
+@click.argument("path")
+def clone(url, path):
+    """Clone a hallmark repository from URL to PATH.
+    
+    This is analogous to `git clone URL PATH`.
+    """
+    try:
+        Repo.clone(url, path)
+        click.echo(f'Successfully cloned to "{path}"')
+    except (DothmError, GitError) as e:
+        raise ClickException(f'Clone failed: {e}')
