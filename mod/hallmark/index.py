@@ -1,9 +1,9 @@
 import shutil
 from pathlib     import Path
 
-class Cache:
+class Index:
     def __init__(self, path):
-        self.root = Path(path) / "cache"
+        self.root = Path(path) / "index"
 
     def _split_checksum(self, sha1: str) -> Path:
         return self.root / sha1[:2] / sha1[2:]

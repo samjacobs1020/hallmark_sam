@@ -26,7 +26,7 @@ from .state      import State
 from .dothm      import Dothm
 from .worktree   import Worktree
 from .paraframe  import ParaFrame
-from .cache      import Cache
+from .index      import Index
 
 
 @contextmanager
@@ -66,17 +66,17 @@ class Repo:
         self.state    = self.dothm.load()
         
         common = Path(self.dothm.common_dir).resolve().parent
-        self.cache = Cache(common)
-        dothm_cache = Path(dothm_path) / "cache"
-        main_cache  = common / "cache"
-        if dothm_cache.resolve() != main_cache.resolve() and not dothm_cache.exists():
-            dothm_cache.symlink_to(main_cache)
+        self.index = Index(common)
+        dothm_index = Path(dothm_path) / "index"
+        main_index  = common / "index"
+        if dothm_index.resolve() != main_index.resolve() and not dothm_index.exists():
+            dothm_index.symlink_to(main_index)
 
     @classmethod
     def init(cls, path: Path | str) -> "Repo":
         dothm_path, worktree_path = cls.lwpaths(path)
         Dothm.init(dothm_path).dump(State())
-        Cache(dothm_path) 
+        Index(dothm_path) 
         worktree_path and Worktree.init(worktree_path)
         return cls(path)
 
@@ -111,7 +111,7 @@ class Repo:
         self.state.update(pf)
         self.dothm.dump(self.state)
         for _, row in pf.iterrows():
-            self.cache.store(self.worktree / row["path"], row["sha1"])
+            self.index.store(self.worktree / row["path"], row["sha1"])
         return pf
 
     def commit(self, msg: str, allow_empty: bool = False) -> bool:
