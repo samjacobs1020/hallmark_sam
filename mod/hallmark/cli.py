@@ -17,10 +17,12 @@
 
 
 import click
+import sys
 
 from click   import ClickException
 from git.exc import GitError
 from .error import DothmError
+from .downloader import DownloadProgress
 
 from . import Repo  # from "__init__.py"
 
@@ -118,16 +120,85 @@ def checkout(repo, target_branch):
     else:
         click.echo("No branches to checkout.")
 
+# Updated mod/hallmark/cli.py section
+
 @hallmark.command(short_help="Clone a hallmark repository from a remote URL.")
 @click.argument("url")
 @click.argument("path")
-def clone(url, path):
+@click.option(
+    "--no-fetch-data",
+    is_flag=True,
+    help="Skip downloading remote data files after clone.")
+@click.option(
+    "--max-workers",
+    type=int,
+    default=4,
+    show_default=True,
+    help="Number of concurrent downloads.")
+def clone(url, path, no_fetch_data, max_workers):
     """Clone a hallmark repository from URL to PATH.
     
-    This is analogous to `git clone URL PATH`.
+    By default, also downloads data files from the configured remote URL.
+    Use --no-fetch-data to skip this step.
+    
+    Supports concurrent downloads for efficient retrieval of large datasets.
     """
     try:
-        Repo.clone(url, path)
+        repo = Repo.clone(url, path)
         click.echo(f'Successfully cloned to "{path}"')
+        
+        if not no_fetch_data:
+            dothm_path, worktree_path = Repo.lwpaths(path)
+            if worktree_path is None:
+                click.echo("Bare repository clone; skipping data download.")
+                return
+            
+            # Setup progress callback for CLI
+            def progress_callback(progress: DownloadProgress):
+                """Display download progress."""
+                percent = progress.percent
+                bar_length = 40
+                filled = int(bar_length * percent / 100)
+                bar = "█" * filled + "░" * (bar_length - filled)
+                mb_downloaded = progress.downloaded_bytes / (1024 * 1024)
+                mb_total = progress.total_bytes / (1024 * 1024)
+                sys.stdout.write(
+                    f"\r{progress.filename}: [{bar}] "
+                    f"{percent:.1f}% ({mb_downloaded:.1f}/{mb_total:.1f} MB)"
+                )
+                sys.stdout.flush()
+            
+            click.echo("Downloading remote data files...")
+            from .downloader import download_remote_data, DownloadError
+            
+            results = download_remote_data(
+                repo,
+                worktree_path,
+                progress_callback=progress_callback,
+                max_workers=max_workers,
+            )
+            
+            click.echo()  # New line after progress bar
+            
+            if results['failed'] == 0:
+                mb_total = results['total_bytes'] / (1024 * 1024)
+                click.echo(
+                    f"✓ Successfully downloaded {results['succeeded']} files "
+                    f"({mb_total:.1f} MB)"
+                )
+            else:
+                click.echo(
+                    f"⚠ Download completed with errors: "
+                    f"{results['succeeded']} succeeded, "
+                    f"{results['failed']} failed"
+                )
+                for error in results['errors']:
+                    click.echo(f"  - {error}", err=True)
+                
+                if results['failed'] == len(results['errors']):
+                    raise ClickException(
+                        f"Failed to download {results['failed']} file(s)"
+                    )
+    
     except (DothmError, GitError) as e:
         raise ClickException(f'Clone failed: {e}')
