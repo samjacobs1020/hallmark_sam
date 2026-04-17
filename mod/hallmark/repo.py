@@ -110,16 +110,15 @@ class Repo:
 
         self.state.update(pf)
         self.dothm.dump(self.state)
+        for _, row in pf.iterrows():
+            self.index.store(self.worktree / row["path"], row["sha1"])
         return pf
 
     def commit(self, msg: str, allow_empty: bool = False) -> bool:
         if not isinstance(msg, str) or not msg.strip():
             raise ValueError("commit message must be a non-empty string")
-        
+
         if allow_empty or self.dothm.index.diff("HEAD"):
-            
-            for _, row in pf.iterrows():
-                self.index.store(self.worktree / row["path"], row["sha1"])
             self.dothm.index.commit(msg)
             return True
         else:
