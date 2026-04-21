@@ -61,3 +61,30 @@ def test_cli():
             result = runner.invoke(hallmark, ["commit", "-m", "Commit test"])
             assert result.exit_code == 0
             assert "Committed staged state changes." in result.output
+
+
+def test_clone_existing_destination_reports_plain_git_stderr():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        source = Path("source")
+        result = runner.invoke(hallmark, ["init", str(source)])
+        assert result.exit_code == 0
+
+        target = Path("repo3")
+        existing_hm = target / ".hm"
+        existing_hm.mkdir(parents=True)
+        (existing_hm / "placeholder.txt").write_text("test\n", encoding="utf-8")
+
+        result = runner.invoke(
+            hallmark,
+            ["clone", "--no-fetch-data", str(source / ".hm"), str(target)],
+        )
+
+        assert result.exit_code != 0
+        assert not result.output.startswith("Error:")
+        assert "stderr:" not in result.output
+        assert "Clone failed:" not in result.output
+        assert (
+            result.output.strip()
+            == "fatal: destination path 'repo3' already exists and is not an empty directory."
+        )

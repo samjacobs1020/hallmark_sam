@@ -21,7 +21,7 @@ import sys
 
 from click   import ClickException
 from git.exc import GitError
-from .error import DothmError
+from .error import CloneError
 from .downloader import DownloadProgress
 
 from . import Repo  # from "__init__.py"
@@ -200,5 +200,8 @@ def clone(url, path, no_fetch_data, max_workers):
                         f"Failed to download {results['failed']} file(s)"
                     )
     
-    except (DothmError, GitError) as e:
-        raise ClickException(f'Clone failed: {e}')
+    except CloneError as e:
+        click.echo(str(e), err=True)
+        raise SystemExit(1)
+    except GitError as e:
+        raise ClickException(str(e))

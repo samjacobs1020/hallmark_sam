@@ -23,7 +23,7 @@ import pandas as pd
 import yaml
 
 from .state import State
-from .error import DothmError
+from .error import CloneError, DothmError
 
 
 class Dothm(Repo):
@@ -62,7 +62,12 @@ See https://l6a.github.io/hallmark/ for `hallmark` usage.
         return dothm
 
     @classmethod
-    def clone(cls, url: str, to_path: Path | str) -> "Dothm":
+    def clone(
+        cls,
+        url: str,
+        to_path: Path | str,
+        display_path: Path | str | None = None,
+    ) -> "Dothm":
         to_path = Path(to_path)
         
         try:
@@ -73,11 +78,18 @@ See https://l6a.github.io/hallmark/ for `hallmark` usage.
             required_files = ["config.yml", "meta.yml", "data.tsv"]
             for file in required_files:
                 if not (dothm.path / file).exists():
-                    raise DothmError(f'Cloned repository missing required file: {file}')
+                    raise CloneError(
+                        f'Cloned repository missing required file: {file}'
+                    )
             return dothm
         except GitCommandError as e:
-            raise DothmError(f'Failed to clone from "{url}": {e}')
-        except DothmError:
+            raise CloneError.from_git_command(
+                e,
+                fallback=f'Failed to clone from "{url}"',
+                clone_path=to_path,
+                display_path=display_path,
+            ) from e
+        except CloneError:
             raise
         
     def link(self, path: Path | str, branch: str | None = None):

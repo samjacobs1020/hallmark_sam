@@ -84,7 +84,7 @@ class Repo:
     def clone(cls, url: str, path: Path | str) -> "Repo":
         dothm_path, worktree_path = cls.lwpaths(path)
         
-        Dothm.clone(url, dothm_path)
+        Dothm.clone(url, dothm_path, display_path=path)
         
         # Initialize worktree if non-bare
         if worktree_path:

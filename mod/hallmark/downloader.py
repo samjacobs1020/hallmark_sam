@@ -53,6 +53,32 @@ class DownloadError(HallmarkError):
     """Raised when remote data download fails."""
 
 
+def _resolve_remote_path(row: pd.Series, data_config: list[dict]) -> Path:
+    """Resolve a downloadable relative path from state metadata."""
+    if "path" in row.index and pd.notna(row["path"]):
+        return Path(str(row["path"]))
+
+    for entry in data_config:
+        fmt = entry.get("fmt")
+        if not fmt:
+            continue
+
+        try:
+            return Path(fmt.format(**row.to_dict()))
+        except KeyError:
+            continue
+        except ValueError as exc:
+            raise DownloadError(
+                f"Invalid data format {fmt!r} for remote download: {exc}"
+            ) from exc
+
+    available = ", ".join(map(str, row.index.tolist()))
+    raise DownloadError(
+        "Unable to resolve download path from repository metadata. "
+        f"Available columns: {available}"
+    )
+
+
 class CyVerseDownloader:
     """Efficient downloader for CyVerse and HTTP-based remote sources.
     
@@ -339,12 +365,13 @@ def download_remote_data(
     # Get list of files to download from data.tsv
     files_to_download = []
     data_df = repo.state.data
+    data_config = repo.state.config.get("data", [])
     
     if data_df.empty:
         return {'succeeded': 0, 'failed': 0, 'total_bytes': 0, 'errors': []}
     
     for _, row in data_df.iterrows():
-        rel_path = Path(row['path'])
+        rel_path = _resolve_remote_path(row, data_config)
         destination = worktree_path / rel_path
         
         # Construct remote URL
