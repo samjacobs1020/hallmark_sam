@@ -40,7 +40,8 @@ class State:
 
     def update(self, pf):
         if pf.empty:
-            incoming = pd.DataFrame(columns=self.data.columns if len(self.data.columns) else COLUMNS)
+            incoming = pd.DataFrame(columns=self.data.columns 
+                                if len(self.data.columns) else COLUMNS)
         else:
             incoming_columns = ["sha1"] + [
                 col for col in pf.columns
@@ -63,7 +64,8 @@ class State:
 
     def replace(self, pf):
         if pf.empty:
-            self.data = pd.DataFrame(columns=self.data.columns if len(self.data.columns) else COLUMNS)
+            self.data = pd.DataFrame(columns=self.data.columns 
+                                     if len(self.data.columns) else COLUMNS)
         else:
             columns = ["sha1"] + [
                 col for col in pf.columns

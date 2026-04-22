@@ -18,4 +18,4 @@
 from .repo import Repo
 from .paraframe import ParaFrame
 
-__all__ = ["Repo"]
+__all__ = ["Repo", "ParaFrame"]

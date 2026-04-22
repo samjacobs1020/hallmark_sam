@@ -14,14 +14,16 @@ def ensure_branch_data_spec(config: dict) -> dict:
 def branch_data_spec(repo) -> dict:
     data = repo.state.config.get("data")
     if not isinstance(data, list) or len(data) != 1 or not isinstance(data[0], dict):
-        raise RuntimeError('branch config must define exactly one entry under "data" in config.yml')
+        raise RuntimeError('branch config must define exactly ' \
+        'one entry under "data" in config.yml')
     return data[0]
 
 
 def branch_fmt(repo) -> str:
     fmt = branch_data_spec(repo).get("fmt")
     if not isinstance(fmt, str) or not fmt.strip():
-        raise RuntimeError('branch config must define one non-empty data[0].fmt in config.yml')
+        raise RuntimeError('branch config must define one ' \
+        'non-empty data[0].fmt in config.yml')
     return fmt
 
 

@@ -17,8 +17,10 @@ def manifest_frame_from_pf(pf, fmt: str) -> pd.DataFrame:
     for _, row in pf.iterrows():
         parsed = parser.parse(str(row["path"]))
         if parsed is None:
-            raise RuntimeError(f'failed to parse "{row["path"]}" using branch fmt "{fmt}"')
-        rows.append({"sha1": row["sha1"], **{k: str(v) for k, v in parsed.named.items()}})
+            raise RuntimeError(f'failed to parse "{row["path"]}" \
+                               using branch fmt "{fmt}"')
+        rows.append({"sha1": row["sha1"], **{k: str(v) 
+                                for k, v in parsed.named.items()}})
     return pd.DataFrame(rows, columns=["sha1", *fmt_fields(fmt)])
 
 

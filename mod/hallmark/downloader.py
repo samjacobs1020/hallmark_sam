@@ -62,7 +62,8 @@ def _resolve_remote_path(row: pd.Series, data_config: list[dict]) -> Path:
     )
 
 
-def _verify_sha1(path: Path, expected_sha1: Optional[str], chunk_size: int = 8192) -> None:
+def _verify_sha1(path: Path, expected_sha1: Optional[str], 
+                 chunk_size: int = 8192) -> None:
     if not expected_sha1:
         return
 
@@ -134,11 +135,13 @@ def download_remote_data(
         rel_path = _resolve_remote_path(row, data_config)
         file_url = urljoin(remote_url + "/", str(rel_path))
         destination = worktree_path / rel_path
-        sha1 = str(row["sha1"]) if "sha1" in row.index and pd.notna(row["sha1"]) else None
+        sha1 = str(row["sha1"]) if "sha1" in row.index and \
+        pd.notna(row["sha1"]) else None
         files_to_download.append((file_url, destination, sha1))
 
     results = {"succeeded": 0, "failed": 0, "total_bytes": 0, "errors": []}
-    progress = tqdm(total=len(files_to_download), unit="file", disable=not show_progress)
+    progress = tqdm(total=len(files_to_download), unit="file", 
+                    disable=not show_progress)
 
     try:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:

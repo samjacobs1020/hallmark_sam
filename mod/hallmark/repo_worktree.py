@@ -8,7 +8,8 @@ from .repo_config import branch_fmt, path_from_row
 
 def effective_cwd(repo) -> Path:
     if repo.worktree is None:
-        raise RuntimeError("cannot inspect files in a bare repository without a worktree")
+        raise RuntimeError("cannot inspect files in a bare repository " \
+        "without a worktree")
 
     cwd = Path.cwd().resolve()
     worktree = Path(repo.worktree).resolve()
@@ -44,11 +45,14 @@ def ensure_clean_tracked_files(repo) -> None:
         path = repo.worktree / rel_path
         if not path.exists():
             raise RuntimeError(
-                f'tracked file "{rel_path}" is missing; commit or restore it before checkout')
+                f'tracked file "{rel_path}" is missing; commit or \
+                restore it before checkout')
         if repo.checksum(path) != row["sha1"]:
             raise RuntimeError(
-                f'tracked file "{rel_path}" has uncommitted changes; commit them before checkout')
+                f'tracked file "{rel_path}" has uncommitted changes; \
+                commit them before checkout')
 
     if repo.dothm.index.diff("HEAD"):
         raise RuntimeError(
-            "you have uncommitted hallmark state changes — commit them before checkout")
+            "you have uncommitted hallmark state changes — " \
+            "commit them before checkout")

@@ -4,7 +4,8 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from hallmark.downloader import DownloadError, _resolve_remote_path, download_remote_data
+from hallmark.downloader import DownloadError, _resolve_remote_path, \
+download_remote_data
 
 
 def test_resolve_remote_path_uses_explicit_path():
@@ -76,7 +77,8 @@ def test_resolve_remote_path_raises_when_no_path_can_be_built():
         _resolve_remote_path(row, [{"fmt": "{missing}.uvfits"}])
 
 
-def test_download_remote_data_builds_urls_and_destinations_from_fmt(monkeypatch, tmp_path):
+def test_download_remote_data_builds_urls_and_destinations_from_fmt(
+        monkeypatch, tmp_path):
     captured = {}
 
     def fake_download_file(url, destination, sha1, chunk_size=8192):

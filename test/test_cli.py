@@ -240,7 +240,8 @@ def test_clone_existing_destination_reports_plain_git_stderr():
         assert "Clone failed:" not in result.output
         assert (
             result.output.strip()
-            == "fatal: destination path 'repo3' already exists and is not an empty directory."
+            == "fatal: destination path 'repo3' already exists and "
+            "is not an empty directory."
         )
 
 
