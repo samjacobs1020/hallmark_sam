@@ -98,8 +98,8 @@ class Repo:
         clone_path = Path(path)
         if clone_path.exists():
             raise DestinationExistsError(
-                f"fatal: destination path '{clone_path}' \
-                already exists and is not an empty directory."
+                f"fatal: destination path '{clone_path}' already exists "
+                "and is not an empty directory."
             )
 
         dothm_path, worktree_path = cls.lwpaths(path)
@@ -270,8 +270,8 @@ class Repo:
             rel_path = row_to_path(row, target_state.config["data"][0]["fmt"])
             if rel_path not in current_tracked and (self.worktree / rel_path).exists():
                 raise RuntimeError(
-                    f'target tracked path "{rel_path}" \
-                    already exists as an untracked file')
+                    f'target tracked path "{rel_path}" already exists '
+                    "as an untracked file")
 
         # remove current tracked files from worktree
         for _, row in self.state.data.iterrows():

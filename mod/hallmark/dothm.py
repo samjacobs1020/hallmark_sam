@@ -66,17 +66,18 @@ See https://l6a.github.io/hallmark/ for `hallmark` usage.
     @staticmethod
     def config_template() -> str:
         return 
-    """Edit this file only if your branch needs regex substitutions or 
-        a preset remote.
-        # For simple names, you can just run: hallmark add "a{a}_i{i}.h5"
-        data:
-        -
-            # fmt: "{release}_{source}_{year}_{doy:03d}_{band}.uvfits"
-            encoding:
-            # aspin: m([0-9]+(\\.[0-9]+)?|\\.[0-9]+)
-        remote:
-        # name: origin
-        # url: https://example.com/path/to/data/
+    """
+    Edit this file only if your branch needs regex substitutions or a 
+    preset remote.
+    For simple names, you can just run: hallmark add "a{a}_i{i}.h5"
+    data:
+    -
+        # fmt: "{release}_{source}_{year}_{doy:03d}_{band}.uvfits"
+        encoding:
+        # aspin: m([0-9]+(\\.[0-9]+)?|\\.[0-9]+)
+    remote:
+    name: origin
+    url: https://example.com/path/to/data/
     """
 
     @classmethod
