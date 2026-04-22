@@ -17,6 +17,7 @@
 
 
 from pathlib import Path
+from typing import Optional, Union
 
 from git.exc import GitError, GitCommandError
 
@@ -36,9 +37,9 @@ class CloneError(HallmarkError, GitError):
     def from_git_command(
         cls,
         error: GitCommandError,
-        fallback: str | None = None,
-        clone_path: Path | str | None = None,
-        display_path: Path | str | None = None,
+        fallback: Optional[str] = None,
+        clone_path: Optional[Union[Path, str]] = None,
+        display_path: Optional[Union[Path, str]] = None,
     ) -> "CloneError":
         text = str(error.stderr or fallback or error).strip()
         if "fatal:" in text:

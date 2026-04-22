@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Union
 
 
 class Worktree(type(Path())):
@@ -25,7 +26,7 @@ class Worktree(type(Path())):
     and later consumed by downstream software.
     """
 
-    def __new__(cls, path: Path | str) -> "Worktree":
+    def __new__(cls, path: Union[Path, str]) -> "Worktree":
         path = Path(path).resolve()
         if path.is_dir():
             return super().__new__(cls, path)
@@ -35,7 +36,7 @@ class Worktree(type(Path())):
             raise FileNotFoundError(f'Worktree "{path}" not found')
 
     @classmethod
-    def init(cls, path: Path | str) -> "Worktree":
+    def init(cls, path: Union[Path, str]) -> "Worktree":
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
         return cls(path)

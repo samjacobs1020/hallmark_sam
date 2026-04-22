@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from string import Formatter
 from pathlib import Path
+from typing import Dict, Optional
 
 
 def ensure_branch_data_spec(config: dict) -> dict:
@@ -34,10 +35,10 @@ def set_branch_fmt(repo, fmt: str) -> None:
 def set_config(
     repo,
     *,
-    fmt: str | None = None,
-    remote_name: str | None = None,
-    remote_url: str | None = None,
-    encoding_updates: dict[str, str] | None = None,
+    fmt: Optional[str] = None,
+    remote_name: Optional[str] = None,
+    remote_url: Optional[str] = None,
+    encoding_updates: Optional[Dict[str, str]] = None,
 ) -> dict:
     config = repo.state.config
 
@@ -117,5 +118,5 @@ def row_to_path(row, fmt: str) -> Path:
     return Path(fmt.format(**values))
 
 
-def path_from_row(repo, row, fmt: str | None = None) -> Path:
+def path_from_row(repo, row, fmt: Optional[str] = None) -> Path:
     return row_to_path(row, fmt or branch_fmt(repo))

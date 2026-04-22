@@ -1,10 +1,11 @@
 import os
 import shutil
 from pathlib import Path
+from typing import Union
 
 
 class Objects:
-    def __init__(self, path: Path | str):
+    def __init__(self, path: Union[Path, str]):
         self.root = Path(path) / "objects"
 
     def _split_checksum(self, sha1: str) -> Path:

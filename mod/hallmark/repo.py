@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from hashlib import sha1
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional, Tuple, Union
 
 from .dothm import Dothm
 from .error import DestinationExistsError
@@ -60,13 +60,13 @@ class Repo:
     worktree: Optional[Worktree] = None
 
     @staticmethod
-    def lwpaths(path: Path | str) -> tuple[Path, Path | None]:
+    def lwpaths(path: Union[Path, str]) -> Tuple[Path, Optional[Path]]:
         path = Path(path).resolve()
         if path.suffix == ".hm":
             return path, None
         return path / ".hm", path
 
-    def __init__(self, path: Path | str) -> None:
+    def __init__(self, path: Union[Path, str]) -> None:
         dothm_path, worktree_path = self.lwpaths(path)
         self.dothm = Dothm(dothm_path)
         self.worktree = worktree_path and Worktree(worktree_path)
@@ -82,7 +82,7 @@ class Repo:
             dothm_objects.symlink_to(main_objects)
 
     @classmethod
-    def init(cls, path: Path | str) -> "Repo":
+    def init(cls, path: Union[Path, str]) -> "Repo":
         dothm_path, worktree_path = cls.lwpaths(path)
         dothm = Dothm.init(dothm_path)
         (dothm.path/"config.yml").write_text(Dothm.config_template(),encoding="utf-8")
@@ -94,7 +94,7 @@ class Repo:
         return cls(path)
 
     @classmethod
-    def clone(cls, url: str, path: Path | str) -> "Repo":
+    def clone(cls, url: str, path: Union[Path, str]) -> "Repo":
         clone_path = Path(path)
         if clone_path.exists():
             raise DestinationExistsError(
@@ -120,7 +120,7 @@ class Repo:
                 digest.update(block)
         return digest.hexdigest()
 
-    def add_paths(self, paths: list[Path | str]) -> ParaFrame:
+    def add_paths(self, paths: List[Union[Path, str]]) -> ParaFrame:
         raise RuntimeError(
             'explicit path add is not supported while data.tsv ' \
             'stores only sha1 plus fmt fields')
@@ -128,10 +128,10 @@ class Repo:
     def set_config(
         self,
         *,
-        fmt: str | None = None,
-        remote_name: str | None = None,
-        remote_url: str | None = None,
-        encoding_updates: dict[str, str] | None = None,
+        fmt: Optional[str] = None,
+        remote_name: Optional[str] = None,
+        remote_url: Optional[str] = None,
+        encoding_updates: Optional[Dict[str, str]] = None,
     ) -> dict:
         repo_set_config(
             self,

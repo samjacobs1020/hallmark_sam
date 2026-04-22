@@ -6,6 +6,7 @@ name = "hallmark"
 dynamic = ["version"]
 license = "Apache-2.0"
 description = "Reproducibility is the hallmark of the scientific method"
+requires-python = ">=3.9"
 
 dependencies =[
     "click",

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from pathlib   import Path
 from functools import cached_property
+from typing import Optional, Union
 
 from git import GitCommandError, Repo
 import pandas as pd
@@ -81,8 +82,8 @@ remote:
     def clone(
         cls,
         url: str,
-        to_path: Path | str,
-        display_path: Path | str | None = None,
+        to_path: Union[Path, str],
+        display_path: Optional[Union[Path, str]] = None,
     ) -> "Dothm":
         to_path = Path(to_path)
 
@@ -107,7 +108,7 @@ remote:
         except CloneError:
             raise
 
-    def link(self, path: Path | str, branch: str | None = None):
+    def link(self, path: Union[Path, str], branch: Optional[str] = None):
         cmd = self.git  # has its own working directory
         path = Path(path).resolve()  # use absolute path
         try:
@@ -129,16 +130,16 @@ remote:
         self.dump_tsv(state.data,   "data")
         self.index.add(["config.yml", "meta.yml", "data.tsv"])
 
-    def load_yml(self, stem: Path | str) -> dict:
+    def load_yml(self, stem: Union[Path, str]) -> dict:
         with open((self.path/stem).with_suffix(".yml"), "r") as f:
             return yaml.safe_load(f)
 
-    def dump_yml(self, data: dict, stem: Path | str) -> None:
+    def dump_yml(self, data: dict, stem: Union[Path, str]) -> None:
         with open((self.path/stem).with_suffix(".yml"), "w") as f:
             yaml.dump(data, f, sort_keys=False)
 
-    def load_tsv(self, stem: Path | str) -> pd.DataFrame:
+    def load_tsv(self, stem: Union[Path, str]) -> pd.DataFrame:
         return pd.read_csv((self.path/stem).with_suffix(".tsv"), sep="\t", dtype=str)
 
-    def dump_tsv(self, data: pd.DataFrame, stem: Path | str) -> None:
+    def dump_tsv(self, data: pd.DataFrame, stem: Union[Path, str]) -> None:
         data.to_csv((self.path/stem).with_suffix(".tsv"), sep="\t", index=False)
