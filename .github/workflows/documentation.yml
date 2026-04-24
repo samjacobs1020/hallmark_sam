@@ -23,7 +23,7 @@ jobs:
 
       - name: Build docs
         run: |
-          sphinx-build doc _build
+          sphinx-build doc doc/_build
 
       - name: Upload artifacts
         uses: actions/upload-pages-artifact@v3
