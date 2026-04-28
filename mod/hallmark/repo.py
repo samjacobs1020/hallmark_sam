@@ -295,12 +295,6 @@ class Repo:
                         f'target tracked path "{rel_path}" already exists '
                         "as an untracked file")
 
-        # remove current tracked files from worktree
-        for _, row in self.state.data.iterrows():
-            path = self.worktree / path_from_row(self, row)
-            if path.exists():
-                path.unlink()
-
         # switch .hm branch
         if new_branch:
             self.dothm.git.checkout("-b", target_branch)

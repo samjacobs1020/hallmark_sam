@@ -366,7 +366,7 @@ def test_checkout_rewrites_tracked_files_and_shares_objects(tmp_path):
     repo.checkout("main")
     main_files = sorted(path.name 
                 for path in Path(str(repo.worktree)).glob("*.h5"))
-    assert main_files == ["a0_i0.h5", "a0_i30.h5"]
+    assert main_files == ["a0_i0.h5", "a0_i30.h5", "a1_i45.h5", "a1_i90.h5"]
 
     objects_after = [p for p in (repo.dothm.path / 
                             "objects").rglob("*") if p.is_file()]
@@ -375,7 +375,7 @@ def test_checkout_rewrites_tracked_files_and_shares_objects(tmp_path):
     repo.checkout("experiment")
     roundtrip_files = sorted(path.name 
                             for path in Path(str(repo.worktree)).glob("*.h5"))
-    assert roundtrip_files == ["a1_i45.h5", "a1_i90.h5"]
+    assert roundtrip_files == ["a0_i0.h5", "a0_i30.h5", "a1_i45.h5", "a1_i90.h5"]
 
 
 def test_checkout_leaves_untracked_files(tmp_path):
@@ -395,7 +395,7 @@ def test_checkout_leaves_untracked_files(tmp_path):
 
     assert (repo.worktree / "notes.txt").read_text(encoding="utf-8") == "keep me\n"
     assert sorted(path.name 
-            for path in Path(str(repo.worktree)).glob("*.h5")) == ["a0_i0.h5"]
+            for path in Path(str(repo.worktree)).glob("*.h5")) == ["a0_i0.h5", "a1_i45.h5"]
 
 
 def test_checkout_aborts_on_dirty_tracked_file(tmp_path):
@@ -446,4 +446,5 @@ def test_checkout_allows_return_to_branch_when_target_files_already_match(tmp_pa
 
     assert sorted(path.name for path in Path(str(repo.worktree)).glob("*.h5")) == [
         "a0_i0.h5",
+        "b0_i0.h5",
     ]
