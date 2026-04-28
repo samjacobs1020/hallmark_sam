@@ -147,6 +147,11 @@ class Repo:
         head_state = load_head_state(self)
         head_map = manifest_map(head_state)
         staged_map = manifest_map(self.state)
+        state_changes = sorted({
+            diff.a_path or diff.b_path
+            for diff in self.dothm.index.diff("HEAD")
+            if diff.a_path or diff.b_path
+        })
 
         staged_added = sorted(path for path in staged_map if path not in head_map)
         staged_deleted = sorted(path for path in head_map if path not in staged_map)
@@ -180,6 +185,7 @@ class Repo:
         return {
             "branch": self.dothm.active_branch.name,
             "staged": {
+                "state": state_changes,
                 "added": staged_added,
                 "modified": staged_modified,
                 "deleted": staged_deleted,

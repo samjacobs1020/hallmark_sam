@@ -203,6 +203,27 @@ def test_cli_set_config_and_add_dot():
             assert r"aspin: m([0-9]+(\.[0-9]+)?|\.[0-9]+)" in config
 
 
+def test_cli_status_shows_staged_state_after_set_config():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        runner.invoke(hallmark, ["init", "repo"])
+
+        with chdir("repo"):
+            result = runner.invoke(hallmark, ["set-config", "--fmt", "b{a}_i{i}.h5"])
+            assert result.exit_code == 0
+
+            result = runner.invoke(hallmark, ["status"])
+
+            assert result.exit_code == 0
+            assert "Changes to be committed:" in result.output
+            assert "state:   config.yml" in result.output
+            assert "nothing to commit, working tree clean" not in result.output
+
+            result = runner.invoke(hallmark, ["commit", "-m", "config only"])
+            assert result.exit_code == 0
+            assert "Committed staged state changes." in result.output
+
+
 def test_cli_set_config_rejects_malformed_encoding():
     runner = CliRunner()
     with runner.isolated_filesystem():
