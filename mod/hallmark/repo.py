@@ -282,10 +282,12 @@ class Repo:
 
         for _, row in target_state.data.iterrows():
             rel_path = row_to_path(row, target_state.config["data"][0]["fmt"])
-            if rel_path not in current_tracked and (self.worktree / rel_path).exists():
-                raise CheckoutError(
-                    f'target tracked path "{rel_path}" already exists '
-                    "as an untracked file")
+            target_path = self.worktree / rel_path
+            if rel_path not in current_tracked and target_path.exists():
+                if self.checksum(target_path) != row["sha1"]:
+                    raise CheckoutError(
+                        f'target tracked path "{rel_path}" already exists '
+                        "as an untracked file")
 
         # remove current tracked files from worktree
         for _, row in self.state.data.iterrows():

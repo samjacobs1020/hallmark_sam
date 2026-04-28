@@ -430,3 +430,20 @@ def test_checkout_aborts_on_untracked_path_conflict(tmp_path):
     with pytest.raises(RuntimeError, 
         match='target tracked path "a1_i45.h5" already exists as an untracked file'):
         repo.checkout("experiment")
+
+
+def test_checkout_allows_return_to_branch_when_target_files_already_match(tmp_path):
+    repo = Repo.init(tmp_path / "repo")
+    _write_files(repo.worktree, ["a0_i0.h5", "b0_i0.h5"])
+    repo.add("a{a}_i{i}.h5")
+    repo.commit("main data")
+
+    repo.checkout("experiment")
+    repo.add("b{a}_i{i}.h5")
+    repo.commit("experiment data")
+
+    repo.checkout("main")
+
+    assert sorted(path.name for path in Path(str(repo.worktree)).glob("*.h5")) == [
+        "a0_i0.h5",
+    ]
