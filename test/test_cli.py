@@ -239,6 +239,24 @@ def test_cli_log():
             assert result.output.strip() == expected.strip()
 
 
+def test_cli_branch_lists_local_branches_and_marks_current():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        runner.invoke(hallmark, ["init", "repo"])
+
+        with chdir("repo"):
+            Path("a0_i0.h5").write_text("a0_i0.h5\n", encoding="utf-8")
+            runner.invoke(hallmark, ["add", "a{a}_i{i}.h5"])
+            runner.invoke(hallmark, ["commit", "-m", "add first file"])
+            runner.invoke(hallmark, ["checkout", "experiment"])
+
+            result = runner.invoke(hallmark, ["branch"])
+
+            assert result.exit_code == 0
+            assert "  main" in result.output
+            assert "* experiment" in result.output
+
+
 def test_clone_existing_destination_reports_plain_git_stderr():
     runner = CliRunner()
     with runner.isolated_filesystem():

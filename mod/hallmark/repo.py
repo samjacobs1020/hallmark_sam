@@ -215,6 +215,11 @@ class Repo:
             self.dothm.dump(self.state)
             return pf.drop(columns=["sha1"], errors="ignore")
 
+        try:
+            previous_fmt = branch_fmt(self)
+        except RuntimeError:
+            previous_fmt = None
+
         set_branch_fmt(self, fstr)
 
         with chdir(self.worktree):
@@ -232,7 +237,11 @@ class Repo:
                 for path in pf["path"].astype(str)
             ]
 
-        self.state.update(manifest_frame_from_pf(pf, fstr))
+        manifest = manifest_frame_from_pf(pf, fstr)
+        if previous_fmt is None or previous_fmt != fstr:
+            self.state.replace(manifest)
+        else:
+            self.state.update(manifest)
         self.dothm.dump(self.state)
         return pf.drop(columns=["sha1"], errors="ignore")
 
@@ -252,6 +261,11 @@ class Repo:
         if not self.dothm.head.is_valid():
             return ""
         return self.dothm.git.log()
+
+    def branches(self) -> dict[str, object]:
+        current = self.dothm.active_branch.name
+        names = sorted(head.name for head in self.dothm.heads)
+        return {"current": current, "names": names}
 
     def checkout(self, target_branch: str) -> bool:
         if not isinstance(target_branch, str) or not target_branch.strip():

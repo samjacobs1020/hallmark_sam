@@ -209,6 +209,26 @@ def test_repo_add_pattern_keeps_deleted_manifest_rows(tmp_path):
     ]
 
 
+def test_repo_add_pattern_replaces_manifest_when_fmt_changes(tmp_path):
+    repo = Repo.init(tmp_path / "repo")
+    _write_files(repo.worktree, ["a0.4_i30_w3.h5", "b0.4_i30_w3.h5"])
+
+    repo.add("a{a}_i{i}_w{w}.h5")
+    repo.commit("main a data")
+    repo.checkout("experiment")
+    repo.add("b{a}_i{i}_w{w}.h5")
+
+    assert repo.state.config["data"] == [{"fmt": "b{a}_i{i}_w{w}.h5", "encoding": None}]
+    assert repo.state.data.to_dict(orient="records") == [
+        {
+            "sha1": Repo.checksum(repo.worktree / "b0.4_i30_w3.h5"),
+            "a": "0.4",
+            "i": "30",
+            "w": "3",
+        }
+    ]
+
+
 def test_repo_add_paths_is_not_supported_yet(tmp_path):
     repo = Repo.init(tmp_path / "repo")
     _write_files(repo.worktree, ["a0_i0.h5", "a0_i30.h5", "b0_i45.h5"])

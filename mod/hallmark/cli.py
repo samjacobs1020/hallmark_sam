@@ -212,6 +212,17 @@ def log(repo):
         click.echo(history)
 
 
+@hallmark.command(short_help="List hallmark branches.")
+@click.pass_obj
+def branch(repo):
+    """List local hallmark branches."""
+    snapshot = repo.branches()
+    current = snapshot["current"]
+    for name in snapshot["names"]:
+        prefix = "*" if name == current else " "
+        click.echo(f"{prefix} {name}")
+
+
 @hallmark.command(short_help="Switch to another branch.")
 @click.argument("target_branch")
 @click.pass_obj
