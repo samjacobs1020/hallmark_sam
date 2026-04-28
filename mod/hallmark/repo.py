@@ -147,6 +147,11 @@ class Repo:
         head_state = load_head_state(self)
         head_map = manifest_map(head_state)
         staged_map = manifest_map(self.state)
+        state_changes = sorted({
+            diff.a_path or diff.b_path
+            for diff in self.dothm.index.diff("HEAD")
+            if diff.a_path or diff.b_path
+        })
 
         staged_added = sorted(path for path in staged_map if path not in head_map)
         staged_deleted = sorted(path for path in head_map if path not in staged_map)
@@ -180,6 +185,7 @@ class Repo:
         return {
             "branch": self.dothm.active_branch.name,
             "staged": {
+                "state": state_changes,
                 "added": staged_added,
                 "modified": staged_modified,
                 "deleted": staged_deleted,
@@ -215,6 +221,11 @@ class Repo:
             self.dothm.dump(self.state)
             return pf.drop(columns=["sha1"], errors="ignore")
 
+        try:
+            previous_fmt = branch_fmt(self)
+        except RuntimeError:
+            previous_fmt = None
+
         set_branch_fmt(self, fstr)
 
         with chdir(self.worktree):
@@ -232,7 +243,11 @@ class Repo:
                 for path in pf["path"].astype(str)
             ]
 
-        self.state.update(manifest_frame_from_pf(pf, fstr))
+        manifest = manifest_frame_from_pf(pf, fstr)
+        if previous_fmt is None or previous_fmt != fstr:
+            self.state.replace(manifest)
+        else:
+            self.state.update(manifest)
         self.dothm.dump(self.state)
         return pf.drop(columns=["sha1"], errors="ignore")
 
@@ -253,6 +268,11 @@ class Repo:
             return ""
         return self.dothm.git.log()
 
+    def branches(self) -> dict[str, object]:
+        current = self.dothm.active_branch.name
+        names = sorted(head.name for head in self.dothm.heads)
+        return {"current": current, "names": names}
+
     def checkout(self, target_branch: str) -> bool:
         if not isinstance(target_branch, str) or not target_branch.strip():
             raise ValueError("branch name must be a non-empty string")
@@ -268,16 +288,12 @@ class Repo:
 
         for _, row in target_state.data.iterrows():
             rel_path = row_to_path(row, target_state.config["data"][0]["fmt"])
-            if rel_path not in current_tracked and (self.worktree / rel_path).exists():
-                raise CheckoutError(
-                    f'target tracked path "{rel_path}" already exists '
-                    "as an untracked file")
-
-        # remove current tracked files from worktree
-        for _, row in self.state.data.iterrows():
-            path = self.worktree / path_from_row(self, row)
-            if path.exists():
-                path.unlink()
+            target_path = self.worktree / rel_path
+            if rel_path not in current_tracked and target_path.exists():
+                if self.checksum(target_path) != row["sha1"]:
+                    raise CheckoutError(
+                        f'target tracked path "{rel_path}" already exists '
+                        "as an untracked file")
 
         # switch .hm branch
         if new_branch:

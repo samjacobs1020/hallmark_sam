@@ -96,6 +96,7 @@ def status(repo):
     emit_section(
         "Changes to be committed:",
         [
+            ("state", staged["state"]),
             ("new file", staged["added"]),
             ("modified", staged["modified"]),
             ("deleted", staged["deleted"]),
@@ -116,7 +117,7 @@ def status(repo):
         for path in untracked:
             click.echo("  " + click.style(path, fg="red"))
 
-    if not any([staged["added"], staged["modified"], staged["deleted"],
+    if not any([staged["state"], staged["added"], staged["modified"], staged["deleted"],
                 worktree["modified"], worktree["deleted"], untracked]):
         click.echo("")
         click.echo("nothing to commit, working tree clean")
@@ -210,6 +211,17 @@ def log(repo):
     history = repo.log()
     if history:
         click.echo(history)
+
+
+@hallmark.command(short_help="List hallmark branches.")
+@click.pass_obj
+def branch(repo):
+    """List local hallmark branches."""
+    snapshot = repo.branches()
+    current = snapshot["current"]
+    for name in snapshot["names"]:
+        prefix = "*" if name == current else " "
+        click.echo(f"{prefix} {name}")
 
 
 @hallmark.command(short_help="Switch to another branch.")

@@ -89,7 +89,7 @@ def test_cli():
 
             result = runner.invoke(hallmark, ["checkout", "main"])
             assert result.exit_code == 0
-            assert not Path("a1_i45.h5").exists()
+            assert Path("a1_i45.h5").exists()
 
             Path("a0_i0.h5").write_text("dirty\n", encoding="utf-8")
             result = runner.invoke(hallmark, ["checkout", "experiment"])
@@ -203,6 +203,27 @@ def test_cli_set_config_and_add_dot():
             assert r"aspin: m([0-9]+(\.[0-9]+)?|\.[0-9]+)" in config
 
 
+def test_cli_status_shows_staged_state_after_set_config():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        runner.invoke(hallmark, ["init", "repo"])
+
+        with chdir("repo"):
+            result = runner.invoke(hallmark, ["set-config", "--fmt", "b{a}_i{i}.h5"])
+            assert result.exit_code == 0
+
+            result = runner.invoke(hallmark, ["status"])
+
+            assert result.exit_code == 0
+            assert "Changes to be committed:" in result.output
+            assert "state:   config.yml" in result.output
+            assert "nothing to commit, working tree clean" not in result.output
+
+            result = runner.invoke(hallmark, ["commit", "-m", "config only"])
+            assert result.exit_code == 0
+            assert "Committed staged state changes." in result.output
+
+
 def test_cli_set_config_rejects_malformed_encoding():
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -237,6 +258,24 @@ def test_cli_log():
             assert result.exit_code == 0
             expected = GitRepo(".hm").git.log()
             assert result.output.strip() == expected.strip()
+
+
+def test_cli_branch_lists_local_branches_and_marks_current():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        runner.invoke(hallmark, ["init", "repo"])
+
+        with chdir("repo"):
+            Path("a0_i0.h5").write_text("a0_i0.h5\n", encoding="utf-8")
+            runner.invoke(hallmark, ["add", "a{a}_i{i}.h5"])
+            runner.invoke(hallmark, ["commit", "-m", "add first file"])
+            runner.invoke(hallmark, ["checkout", "experiment"])
+
+            result = runner.invoke(hallmark, ["branch"])
+
+            assert result.exit_code == 0
+            assert "  main" in result.output
+            assert "* experiment" in result.output
 
 
 def test_clone_existing_destination_reports_plain_git_stderr():

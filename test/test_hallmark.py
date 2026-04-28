@@ -209,6 +209,26 @@ def test_repo_add_pattern_keeps_deleted_manifest_rows(tmp_path):
     ]
 
 
+def test_repo_add_pattern_replaces_manifest_when_fmt_changes(tmp_path):
+    repo = Repo.init(tmp_path / "repo")
+    _write_files(repo.worktree, ["a0.4_i30_w3.h5", "b0.4_i30_w3.h5"])
+
+    repo.add("a{a}_i{i}_w{w}.h5")
+    repo.commit("main a data")
+    repo.checkout("experiment")
+    repo.add("b{a}_i{i}_w{w}.h5")
+
+    assert repo.state.config["data"] == [{"fmt": "b{a}_i{i}_w{w}.h5", "encoding": None}]
+    assert repo.state.data.to_dict(orient="records") == [
+        {
+            "sha1": Repo.checksum(repo.worktree / "b0.4_i30_w3.h5"),
+            "a": "0.4",
+            "i": "30",
+            "w": "3",
+        }
+    ]
+
+
 def test_repo_add_paths_is_not_supported_yet(tmp_path):
     repo = Repo.init(tmp_path / "repo")
     _write_files(repo.worktree, ["a0_i0.h5", "a0_i30.h5", "b0_i45.h5"])
@@ -346,7 +366,7 @@ def test_checkout_rewrites_tracked_files_and_shares_objects(tmp_path):
     repo.checkout("main")
     main_files = sorted(path.name 
                 for path in Path(str(repo.worktree)).glob("*.h5"))
-    assert main_files == ["a0_i0.h5", "a0_i30.h5"]
+    assert main_files == ["a0_i0.h5", "a0_i30.h5", "a1_i45.h5", "a1_i90.h5"]
 
     objects_after = [p for p in (repo.dothm.path / 
                             "objects").rglob("*") if p.is_file()]
@@ -355,7 +375,7 @@ def test_checkout_rewrites_tracked_files_and_shares_objects(tmp_path):
     repo.checkout("experiment")
     roundtrip_files = sorted(path.name 
                             for path in Path(str(repo.worktree)).glob("*.h5"))
-    assert roundtrip_files == ["a1_i45.h5", "a1_i90.h5"]
+    assert roundtrip_files == ["a0_i0.h5", "a0_i30.h5", "a1_i45.h5", "a1_i90.h5"]
 
 
 def test_checkout_leaves_untracked_files(tmp_path):
@@ -375,7 +395,7 @@ def test_checkout_leaves_untracked_files(tmp_path):
 
     assert (repo.worktree / "notes.txt").read_text(encoding="utf-8") == "keep me\n"
     assert sorted(path.name 
-            for path in Path(str(repo.worktree)).glob("*.h5")) == ["a0_i0.h5"]
+            for path in Path(str(repo.worktree)).glob("*.h5")) == ["a0_i0.h5", "a1_i45.h5"]
 
 
 def test_checkout_aborts_on_dirty_tracked_file(tmp_path):
@@ -410,3 +430,21 @@ def test_checkout_aborts_on_untracked_path_conflict(tmp_path):
     with pytest.raises(RuntimeError, 
         match='target tracked path "a1_i45.h5" already exists as an untracked file'):
         repo.checkout("experiment")
+
+
+def test_checkout_allows_return_to_branch_when_target_files_already_match(tmp_path):
+    repo = Repo.init(tmp_path / "repo")
+    _write_files(repo.worktree, ["a0_i0.h5", "b0_i0.h5"])
+    repo.add("a{a}_i{i}.h5")
+    repo.commit("main data")
+
+    repo.checkout("experiment")
+    repo.add("b{a}_i{i}.h5")
+    repo.commit("experiment data")
+
+    repo.checkout("main")
+
+    assert sorted(path.name for path in Path(str(repo.worktree)).glob("*.h5")) == [
+        "a0_i0.h5",
+        "b0_i0.h5",
+    ]
