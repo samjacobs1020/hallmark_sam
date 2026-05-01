@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 from .dothm import Dothm
-from .error import DestinationExistsError
+from .error import CheckoutError, DestinationExistsError
 from .objects import Objects
 from .paraframe import ParaFrame
 from .repo_config import branch_encodings, branch_fmt, path_from_row, row_to_path, \
@@ -94,7 +94,15 @@ class Repo:
         return cls(path)
 
     @classmethod
-    def clone(cls, url: str, path: Union[Path, str]) -> "Repo":
+    def clone(
+        cls,
+        url: str,
+        path: Union[Path, str],
+        *,
+        fetch_data: bool = True,
+        max_workers: int = 4,
+        show_progress: bool = False,
+    ) -> "Repo":
         clone_path = Path(path)
         if clone_path.exists():
             raise DestinationExistsError(
@@ -110,7 +118,31 @@ class Repo:
         if worktree_path:
             Worktree.init(worktree_path)
 
-        return cls(path)
+        repo = cls(path)
+        repo.download_result = None
+
+        if fetch_data and worktree_path:
+            from .downloader import DownloadError, download_remote_data
+
+            result = download_remote_data(
+                repo,
+                worktree_path,
+                max_workers=max_workers,
+                show_progress=show_progress,
+            )
+            repo.download_result = result
+            if result["failed"]:
+                errors = result.get("errors", [])
+                details = "\n".join(f"  - {error}" for error in errors[:5])
+                remaining = result["failed"] - len(errors[:5])
+                if remaining > 0:
+                    details += f"\n  - ... {remaining} more error(s)"
+                raise DownloadError(
+                    f"Failed to download {result['failed']} file(s):\n"
+                    f"{details}"
+                )
+
+        return repo
 
     @staticmethod
     def checksum(path: Path, chunk_size: int = 1024 * 1024) -> str:
@@ -147,6 +179,11 @@ class Repo:
         head_state = load_head_state(self)
         head_map = manifest_map(head_state)
         staged_map = manifest_map(self.state)
+        state_changes = sorted({
+            diff.a_path or diff.b_path
+            for diff in self.dothm.index.diff("HEAD")
+            if diff.a_path or diff.b_path
+        })
 
         staged_added = sorted(path for path in staged_map if path not in head_map)
         staged_deleted = sorted(path for path in head_map if path not in staged_map)
@@ -180,6 +217,7 @@ class Repo:
         return {
             "branch": self.dothm.active_branch.name,
             "staged": {
+                "state": state_changes,
                 "added": staged_added,
                 "modified": staged_modified,
                 "deleted": staged_deleted,
@@ -215,6 +253,11 @@ class Repo:
             self.dothm.dump(self.state)
             return pf.drop(columns=["sha1"], errors="ignore")
 
+        try:
+            previous_fmt = branch_fmt(self)
+        except RuntimeError:
+            previous_fmt = None
+
         set_branch_fmt(self, fstr)
 
         with chdir(self.worktree):
@@ -232,7 +275,11 @@ class Repo:
                 for path in pf["path"].astype(str)
             ]
 
-        self.state.update(manifest_frame_from_pf(pf, fstr))
+        manifest = manifest_frame_from_pf(pf, fstr)
+        if previous_fmt is None or previous_fmt != fstr:
+            self.state.replace(manifest)
+        else:
+            self.state.update(manifest)
         self.dothm.dump(self.state)
         return pf.drop(columns=["sha1"], errors="ignore")
 
@@ -253,31 +300,37 @@ class Repo:
             return ""
         return self.dothm.git.log()
 
+    def branches(self) -> dict[str, object]:
+        current = self.dothm.active_branch.name
+        names = sorted(head.name for head in self.dothm.heads)
+        return {"current": current, "names": names}
+
     def checkout(self, target_branch: str) -> bool:
         if not isinstance(target_branch, str) or not target_branch.strip():
             raise ValueError("branch name must be a non-empty string")
 
         if self.worktree is None:
-            raise RuntimeError("cannot checkout without a worktree")
+            raise CheckoutError("cannot checkout without a worktree")
         ensure_clean_tracked_files(self)
 
         existing = {head.name for head in self.dothm.heads}
         new_branch = target_branch not in existing
         current_tracked = tracked_paths(self)
         target_state = load_branch_data(self, target_branch)
+        target_fmt = target_state.config["data"][0]["fmt"]
+        target_tracked = {
+            row_to_path(row, target_fmt)
+            for _, row in target_state.data.iterrows()
+        }
 
         for _, row in target_state.data.iterrows():
-            rel_path = row_to_path(row, target_state.config["data"][0]["fmt"])
-            if rel_path not in current_tracked and (self.worktree / rel_path).exists():
-                raise RuntimeError(
-                    f'target tracked path "{rel_path}" already exists '
-                    "as an untracked file")
-
-        # remove current tracked files from worktree
-        for _, row in self.state.data.iterrows():
-            path = self.worktree / path_from_row(self, row)
-            if path.exists():
-                path.unlink()
+            rel_path = row_to_path(row, target_fmt)
+            target_path = self.worktree / rel_path
+            if rel_path not in current_tracked and target_path.exists():
+                if self.checksum(target_path) != row["sha1"]:
+                    raise CheckoutError(
+                        f'target tracked path "{rel_path}" already exists '
+                        "as an untracked file")
 
         # switch .hm branch
         if new_branch:
@@ -288,9 +341,25 @@ class Repo:
         # reload state from the new branch
         self.state = self.dothm.load()
 
+        removed_paths = []
+        for rel_path in sorted(current_tracked - target_tracked, reverse=True):
+            path = self.worktree / rel_path
+            if path.exists():
+                path.unlink()
+                removed_paths.append(path)
+
         # restore files from objects store via hardlinks
         for _, row in self.state.data.iterrows():
             self.objects.restore(row["sha1"], self.worktree / path_from_row(self, row))
+
+        for path in removed_paths:
+            parent = path.parent
+            while parent != self.worktree and parent.exists():
+                try:
+                    parent.rmdir()
+                except OSError:
+                    break
+                parent = parent.parent
 
         return True
 

@@ -209,6 +209,26 @@ def test_repo_add_pattern_keeps_deleted_manifest_rows(tmp_path):
     ]
 
 
+def test_repo_add_pattern_replaces_manifest_when_fmt_changes(tmp_path):
+    repo = Repo.init(tmp_path / "repo")
+    _write_files(repo.worktree, ["a0.4_i30_w3.h5", "b0.4_i30_w3.h5"])
+
+    repo.add("a{a}_i{i}_w{w}.h5")
+    repo.commit("main a data")
+    repo.checkout("experiment")
+    repo.add("b{a}_i{i}_w{w}.h5")
+
+    assert repo.state.config["data"] == [{"fmt": "b{a}_i{i}_w{w}.h5", "encoding": None}]
+    assert repo.state.data.to_dict(orient="records") == [
+        {
+            "sha1": Repo.checksum(repo.worktree / "b0.4_i30_w3.h5"),
+            "a": "0.4",
+            "i": "30",
+            "w": "3",
+        }
+    ]
+
+
 def test_repo_add_paths_is_not_supported_yet(tmp_path):
     repo = Repo.init(tmp_path / "repo")
     _write_files(repo.worktree, ["a0_i0.h5", "a0_i30.h5", "b0_i45.h5"])
@@ -300,7 +320,12 @@ def test_repo_status_reports_staged_worktree_and_untracked_changes(tmp_path):
     snapshot = repo.status()
 
     assert snapshot["branch"] == "main"
-    assert snapshot["staged"] == {"added": [], "modified": [], "deleted": []}
+    assert snapshot["staged"] == {
+        "state": [],
+        "added": [],
+        "modified": [],
+        "deleted": [],
+    }
     assert snapshot["worktree"]["modified"] == ["a0_i0.h5"]
     assert snapshot["worktree"]["deleted"] == ["a0_i30.h5"]
     assert snapshot["untracked"] == ["extra.h5"]
@@ -378,6 +403,33 @@ def test_checkout_leaves_untracked_files(tmp_path):
             for path in Path(str(repo.worktree)).glob("*.h5")) == ["a0_i0.h5"]
 
 
+def test_checkout_rebuilds_worktree_for_branch_specific_nested_fmt(tmp_path):
+    repo = Repo.init(tmp_path / "repo")
+    (repo.worktree / "main").mkdir()
+    _write_files(repo.worktree, ["main/a0_i0.h5"])
+    repo.add("main/a{a}_i{i}.h5")
+    repo.commit("main data")
+
+    repo.checkout("experiment")
+    (repo.worktree / "exp" / "run1").mkdir(parents=True)
+    _write_files(repo.worktree, ["exp/run1/b0_i0.h5"])
+    repo.add("exp/run{run}/b{a}_i{i}.h5")
+    repo.commit("experiment data")
+
+    repo.checkout("main")
+    root = Path(str(repo.worktree))
+    assert sorted(str(path.relative_to(root)) for path in root.rglob("*.h5")) == [
+        "main/a0_i0.h5",
+    ]
+    assert not (repo.worktree / "exp").exists()
+
+    repo.checkout("experiment")
+    assert sorted(str(path.relative_to(root)) for path in root.rglob("*.h5")) == [
+        "exp/run1/b0_i0.h5",
+    ]
+    assert not (repo.worktree / "main").exists()
+
+
 def test_checkout_aborts_on_dirty_tracked_file(tmp_path):
     repo = Repo.init(tmp_path / "repo")
     _write_files(repo.worktree, ["a0_i0.h5"])
@@ -410,3 +462,69 @@ def test_checkout_aborts_on_untracked_path_conflict(tmp_path):
     with pytest.raises(RuntimeError, 
         match='target tracked path "a1_i45.h5" already exists as an untracked file'):
         repo.checkout("experiment")
+
+
+def test_checkout_allows_return_to_branch_when_target_files_already_match(tmp_path):
+    repo = Repo.init(tmp_path / "repo")
+    _write_files(repo.worktree, ["a0_i0.h5", "b0_i0.h5"])
+    repo.add("a{a}_i{i}.h5")
+    repo.commit("main data")
+
+    repo.checkout("experiment")
+    repo.add("b{a}_i{i}.h5")
+    repo.commit("experiment data")
+
+    repo.checkout("main")
+
+    assert sorted(path.name for path in Path(str(repo.worktree)).glob("*.h5")) == [
+        "a0_i0.h5",
+    ]
+
+
+def test_repo_clone_downloads_remote_data_by_default(monkeypatch, tmp_path):
+    source = Repo.init(tmp_path / "source")
+    _write_files(source.worktree, ["a0_i0.h5"])
+    source.add("a{a}_i{i}.h5")
+    source.set_config(remote_url="https://example.com/data/")
+    expected_sha1 = Repo.checksum(source.worktree / "a0_i0.h5")
+    source.commit("add source data")
+
+    captured = {}
+
+    def fake_download_file(url, destination, sha1, chunk_size=8192):
+        captured["url"] = url
+        captured["sha1"] = sha1
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text("downloaded\n", encoding="utf-8")
+        return destination.stat().st_size
+
+    monkeypatch.setattr("hallmark.downloader._download_file", fake_download_file)
+
+    clone = Repo.clone(str(source.dothm.path), tmp_path / "clone")
+
+    assert captured == {
+        "url": "https://example.com/data/a0_i0.h5",
+        "sha1": expected_sha1,
+    }
+    assert (clone.worktree / "a0_i0.h5").read_text(encoding="utf-8") == \
+        "downloaded\n"
+    assert clone.download_result["succeeded"] == 1
+    assert clone.download_result["failed"] == 0
+
+
+def test_repo_clone_can_skip_remote_data_download(monkeypatch, tmp_path):
+    source = Repo.init(tmp_path / "source")
+    _write_files(source.worktree, ["a0_i0.h5"])
+    source.add("a{a}_i{i}.h5")
+    source.set_config(remote_url="https://example.com/data/")
+    source.commit("add source data")
+
+    def fail_download(*args, **kwargs):
+        raise AssertionError("download should not be attempted")
+
+    monkeypatch.setattr("hallmark.downloader._download_file", fail_download)
+
+    clone = Repo.clone(str(source.dothm.path), tmp_path / "clone", fetch_data=False)
+
+    assert not (clone.worktree / "a0_i0.h5").exists()
+    assert clone.download_result is None

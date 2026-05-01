@@ -56,3 +56,6 @@ class CloneError(HallmarkError, GitError):
 
 class DestinationExistsError(CloneError):
     """Raised when clone destination already exists."""
+
+class CheckoutError(HallmarkError):
+    """Raised when a hallmark checkout cannot proceed safely."""

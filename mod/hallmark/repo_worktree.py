@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 from .repo_config import branch_fmt, path_from_row
+from .error import CheckoutError
 
 
 def effective_cwd(repo) -> Path:
@@ -38,21 +39,21 @@ def tracked_paths(repo) -> set[Path]:
 
 def ensure_clean_tracked_files(repo) -> None:
     if repo.worktree is None:
-        raise RuntimeError("cannot checkout without a worktree")
+        raise CheckoutError("cannot checkout without a worktree")
 
     for _, row in repo.state.data.iterrows():
         rel_path = path_from_row(repo, row)
         path = repo.worktree / rel_path
         if not path.exists():
-            raise RuntimeError(
+            raise CheckoutError(
                 f'tracked file "{rel_path}" is missing; commit or \
                 restore it before checkout')
         if repo.checksum(path) != row["sha1"]:
-            raise RuntimeError(
+            raise CheckoutError(
                 f'tracked file "{rel_path}" has uncommitted changes; \
                 commit them before checkout')
 
     if repo.dothm.index.diff("HEAD"):
-        raise RuntimeError(
+        raise CheckoutError(
             "you have uncommitted hallmark state changes — " \
             "commit them before checkout")

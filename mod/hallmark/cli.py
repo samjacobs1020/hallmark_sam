@@ -21,7 +21,7 @@ from click import ClickException
 from git.exc import GitError
 
 from .downloader import DownloadError, download_remote_data
-from .error import CloneError, DestinationExistsError
+from .error import CloneError, DestinationExistsError, CheckoutError
 
 from . import Repo  # from "__init__.py"
 
@@ -96,6 +96,7 @@ def status(repo):
     emit_section(
         "Changes to be committed:",
         [
+            ("state", staged["state"]),
             ("new file", staged["added"]),
             ("modified", staged["modified"]),
             ("deleted", staged["deleted"]),
@@ -116,19 +117,26 @@ def status(repo):
         for path in untracked:
             click.echo("  " + click.style(path, fg="red"))
 
-    if not any([staged["added"], staged["modified"], staged["deleted"],
+    if not any([staged["state"], staged["added"], staged["modified"], staged["deleted"],
                 worktree["modified"], worktree["deleted"], untracked]):
         click.echo("")
         click.echo("nothing to commit, working tree clean")
 
 
 @hallmark.command(short_help="Add files to hallmark index.")
+@click.option(
+    "--regex",
+    "encoding",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Enable regex-based encoding rules from config.yml.")
 @click.argument("inputs", nargs=-1, required=True)
 @click.pass_obj
-def add(repo, inputs):
+def add(repo, encoding, inputs):
     """Add files to the hallmark index.
 
-    `hallmark add FORMAT` uses the branch format string workflow.
+    `hallmark add [--regex] FORMAT` uses the branch format string workflow.
     `hallmark add "."` rebuilds the manifest from current files that match
     the branch `fmt` in `config.yml`.
     Explicit path inputs such as shell-expanded `*` are not supported yet
@@ -136,7 +144,7 @@ def add(repo, inputs):
     """
     try:
         if len(inputs) == 1:
-            pf = repo.add(inputs[0])
+            pf = repo.add(inputs[0], encoding)
         else:
             pf = repo.add_paths(list(inputs))
     except (RuntimeError, ValueError, FileNotFoundError) as e:
@@ -205,6 +213,17 @@ def log(repo):
         click.echo(history)
 
 
+@hallmark.command(short_help="List hallmark branches.")
+@click.pass_obj
+def branch(repo):
+    """List local hallmark branches."""
+    snapshot = repo.branches()
+    current = snapshot["current"]
+    for name in snapshot["names"]:
+        prefix = "*" if name == current else " "
+        click.echo(f"{prefix} {name}")
+
+
 @hallmark.command(short_help="Switch to another branch.")
 @click.argument("target_branch")
 @click.pass_obj
@@ -219,7 +238,7 @@ def checkout(repo, target_branch):
     try:
         if repo.checkout(target_branch):
             click.echo(f'Switched to branch "{target_branch}".')
-    except (GitError, RuntimeError, ValueError, FileNotFoundError) as e:
+    except (GitError, RuntimeError, ValueError, FileNotFoundError, CheckoutError) as e:
         raise ClickException(str(e))
 
 
@@ -245,7 +264,7 @@ def clone(url, path, no_fetch_data, max_workers):
     Supports concurrent downloads for efficient retrieval of large datasets.
     """
     try:
-        repo = Repo.clone(url, path)
+        repo = Repo.clone(url, path, fetch_data=False)
         click.echo(f'Successfully cloned to "{path}"')
 
         if not no_fetch_data:
