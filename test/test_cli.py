@@ -89,7 +89,7 @@ def test_cli():
 
             result = runner.invoke(hallmark, ["checkout", "main"])
             assert result.exit_code == 0
-            assert Path("a1_i45.h5").exists()
+            assert not Path("a1_i45.h5").exists()
 
             Path("a0_i0.h5").write_text("dirty\n", encoding="utf-8")
             result = runner.invoke(hallmark, ["checkout", "experiment"])

@@ -94,7 +94,15 @@ class Repo:
         return cls(path)
 
     @classmethod
-    def clone(cls, url: str, path: Union[Path, str]) -> "Repo":
+    def clone(
+        cls,
+        url: str,
+        path: Union[Path, str],
+        *,
+        fetch_data: bool = True,
+        max_workers: int = 4,
+        show_progress: bool = False,
+    ) -> "Repo":
         clone_path = Path(path)
         if clone_path.exists():
             raise DestinationExistsError(
@@ -110,7 +118,31 @@ class Repo:
         if worktree_path:
             Worktree.init(worktree_path)
 
-        return cls(path)
+        repo = cls(path)
+        repo.download_result = None
+
+        if fetch_data and worktree_path:
+            from .downloader import DownloadError, download_remote_data
+
+            result = download_remote_data(
+                repo,
+                worktree_path,
+                max_workers=max_workers,
+                show_progress=show_progress,
+            )
+            repo.download_result = result
+            if result["failed"]:
+                errors = result.get("errors", [])
+                details = "\n".join(f"  - {error}" for error in errors[:5])
+                remaining = result["failed"] - len(errors[:5])
+                if remaining > 0:
+                    details += f"\n  - ... {remaining} more error(s)"
+                raise DownloadError(
+                    f"Failed to download {result['failed']} file(s):\n"
+                    f"{details}"
+                )
+
+        return repo
 
     @staticmethod
     def checksum(path: Path, chunk_size: int = 1024 * 1024) -> str:
@@ -285,9 +317,14 @@ class Repo:
         new_branch = target_branch not in existing
         current_tracked = tracked_paths(self)
         target_state = load_branch_data(self, target_branch)
+        target_fmt = target_state.config["data"][0]["fmt"]
+        target_tracked = {
+            row_to_path(row, target_fmt)
+            for _, row in target_state.data.iterrows()
+        }
 
         for _, row in target_state.data.iterrows():
-            rel_path = row_to_path(row, target_state.config["data"][0]["fmt"])
+            rel_path = row_to_path(row, target_fmt)
             target_path = self.worktree / rel_path
             if rel_path not in current_tracked and target_path.exists():
                 if self.checksum(target_path) != row["sha1"]:
@@ -304,9 +341,25 @@ class Repo:
         # reload state from the new branch
         self.state = self.dothm.load()
 
+        removed_paths = []
+        for rel_path in sorted(current_tracked - target_tracked, reverse=True):
+            path = self.worktree / rel_path
+            if path.exists():
+                path.unlink()
+                removed_paths.append(path)
+
         # restore files from objects store via hardlinks
         for _, row in self.state.data.iterrows():
             self.objects.restore(row["sha1"], self.worktree / path_from_row(self, row))
+
+        for path in removed_paths:
+            parent = path.parent
+            while parent != self.worktree and parent.exists():
+                try:
+                    parent.rmdir()
+                except OSError:
+                    break
+                parent = parent.parent
 
         return True
 

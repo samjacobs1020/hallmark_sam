@@ -264,7 +264,7 @@ def clone(url, path, no_fetch_data, max_workers):
     Supports concurrent downloads for efficient retrieval of large datasets.
     """
     try:
-        repo = Repo.clone(url, path)
+        repo = Repo.clone(url, path, fetch_data=False)
         click.echo(f'Successfully cloned to "{path}"')
 
         if not no_fetch_data:
