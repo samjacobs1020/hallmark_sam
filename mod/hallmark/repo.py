@@ -38,6 +38,14 @@ from .worktree import Worktree
 
 @contextmanager
 def chdir(path):
+    '''
+    Temporarily change the current working directory. No Yields. 
+
+    Args:
+        Path: Directory to dwitch to while inside the context.
+    Returns:
+        None.
+    '''
     old = os.getcwd()
     os.chdir(path)
     try:
@@ -61,6 +69,17 @@ class Repo:
 
     @staticmethod
     def lwpaths(path: Union[Path, str]) -> Tuple[Path, Optional[Path]]:
+        '''
+        Resolve repository and worktree paths.
+
+        Args:
+            path (Path | str): Path to either a worktree or a 
+            ``.hm`` repository.
+
+        Returns:
+            tuple[Path, Path | None]: A ``(dothm_path, worktree_path)`` tuple. 
+            If ``path`` refers to a ``.hm`` directory, ``worktree_path`` is ``None``.
+        '''
         path = Path(path).resolve()
         if path.suffix == ".hm":
             return path, None

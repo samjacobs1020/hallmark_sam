@@ -39,6 +39,14 @@ class State:
     )
 
     def update(self, pf):
+        '''
+        Marge paraframe rows into the state database.
+
+        Args:
+            pf (paraframe): paraframe containing rows to add or update
+        Returns:
+            none.
+        '''
         if pf.empty:
             incoming = pd.DataFrame(columns=self.data.columns 
                                 if len(self.data.columns) else COLUMNS)
@@ -63,6 +71,16 @@ class State:
         self.data = deduped.loc[:, ["sha1", *key_columns]]
 
     def replace(self, pf):
+        '''
+        Merge paraframe rows into the tsate database. 
+        Existing rows with matching keys are replaced by the incoming rows.
+
+        Args:
+            pf (paraframe): Paraframe containing rows to add or update.
+
+        Returns:
+            None.
+        '''
         if pf.empty:
             self.data = pd.DataFrame(columns=self.data.columns 
                                      if len(self.data.columns) else COLUMNS)
