@@ -21,7 +21,7 @@ import parse
 import pandas as pd
 import numpy as np
 
-from .helper_functions import find_spec_by_fmt, regex_sub
+from .helper_functions import find_spec_by_fmt, regex_sub, try_numeric_conversion
 
 
 class ParaFrame(pd.DataFrame):
@@ -187,8 +187,8 @@ class ParaFrame(pd.DataFrame):
                 break
             except KeyError as e:
                 k = e.args[0]
-                pattern = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":s}", pattern)
-                fmt_g = re.sub(r"\{" + k + r":?.*?\}", "{" + k + ":g}", fmt_g)
+                pattern = re.sub(r"\{" + k + r":?.*?\}", "{" + k + "}", pattern)
+                fmt_g = re.sub(r"\{" + k + r":?.*?\}", "{" + k + "}", fmt_g)
                 kwargs[k] = "*"
 
         # Obtain list of files based on the glob pattern
@@ -272,4 +272,9 @@ class ParaFrame(pd.DataFrame):
                 print(f'Failed to parse "{f}"')
             else:
                 frame.append({"path": f_short, **r.named})
-        return cls(frame, encodings=encodings, base_path=base_path)
+        # attempt to convert each parameter column to numeric
+        # if conversion fails the column stays as string
+        result = cls(frame, encodings=encodings, base_path=base_path)
+        for col in result.columns:
+            result[col] = try_numeric_conversion(result[col])
+        return result
