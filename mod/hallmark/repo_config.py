@@ -4,7 +4,7 @@ from string import Formatter
 from pathlib import Path
 from typing import Dict, Optional
 
-
+#test
 def ensure_branch_data_spec(config: dict) -> dict:
     data = config.get("data")
     if not isinstance(data, list) or len(data) != 1 or not isinstance(data[0], dict):
