@@ -89,5 +89,5 @@ def try_numeric_conversion(series):
                # check each pair of converted and original values
                for numeric_val, original_val in zip(converted, series)):
         return series
-    return converted
+    return converted 
 

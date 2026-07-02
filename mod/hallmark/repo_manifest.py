@@ -8,20 +8,44 @@ import pandas as pd
 from .repo_config import fmt_fields, row_to_path
 
 
+def _safe_str(val) -> str | None:
+    """
+    Convert a value to string, handling None and NaN values.
+
+    Args:
+        val: The value to convert.
+
+    Returns:
+        The string representation of the value, or None if the value is None or NaN.
+    """
+    if val is None or (isinstance(val, float) and pd.isna(val)):
+        return None
+    if isinstance(val, float) and val == int(val):
+        return str(int(val))
+    return str(val)
+
+
 def manifest_frame_from_pf(pf, fmt: str) -> pd.DataFrame:
+    """
+    Convert a paraframe of paths to a manifest frame with parsed fields.
+    
+    Args:
+        pf: A paraframe containing file paths and their corresponding SHA1 checksums.
+        fmt: A format string used to parse the file paths.
+    """
     if pf.empty:
         return pd.DataFrame(columns=["sha1", *fmt_fields(fmt)])
 
-    parser = parse.compile(fmt)
+    all_fields = fmt_fields(fmt)
+    pf_cols = set(pf.columns)
     rows = []
     for _, row in pf.iterrows():
-        parsed = parser.parse(str(row["path"]))
-        if parsed is None:
-            raise RuntimeError(f'failed to parse "{row["path"]}" \
-                               using branch fmt "{fmt}"')
-        rows.append({"sha1": row["sha1"], **{k: str(v) 
-                                for k, v in parsed.named.items()}})
-    return pd.DataFrame(rows, columns=["sha1", *fmt_fields(fmt)])
+        row_dict = {"sha1": row["sha1"]}
+        for field in all_fields:
+            # store None for missing fields or fields not present in the paraframe
+            row_dict[field] = _safe_str(row[field]) if field in pf_cols else None
+        rows.append(row_dict)
+    return pd.DataFrame(rows, columns=["sha1", *all_fields])
 
 
 def manifest_map(state) -> dict[str, str]:

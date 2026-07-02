@@ -1,9 +1,10 @@
 import re
 from pathlib import Path
+from itertools import combinations
 
 # common meta extensions to look for when building the fmts
 META_EXTENSIONS = [".py", ".sh", ".md", ".pdf", ".rst", ".cfg", ".ini", ".yml", ".yaml"\
-                   , ".sl", ".par", ".xcm"]
+                   , ".sl", ".par", ".xcm", ".codes", ".swp"]
 # common meta files to look for when building fmts
 KNOWN_META_FILES = {"README", "LICENSE", "LICENCE", "INVENTORY", "run"}
 # common drive extensions to look for when building fmts
@@ -11,6 +12,9 @@ DRIVE_EXTENSIONS = [".tgz", ".tar", ".gz", ".zip", ".bz2", ".xz", ".zst", ".7z",
 # delimiter characters fmt detection splits on
 _DELIM_PATTERN = r"[_\-.]"
 
+# convert the extensions to lowercase and remove the leading dot for easier comparison
+DRIVE_EXTS_LOWER = {ext.lstrip(".").lower() for ext in DRIVE_EXTENSIONS}
+META_EXTS_LOWER = {ext.lstrip(".").lower() for ext in META_EXTENSIONS}
 
 def _stems_to_fmts(stems: list[str]) -> list[str]:
     """Cluster same-token-count stems into one fmt per shared literal pattern.
@@ -86,7 +90,7 @@ def _stems_to_fmts(stems: list[str]) -> list[str]:
                 field_count += 1
 
         # concatenate the fmt from the tokens and delimiters
-        if has_fixed and field_count > 0:
+        if has_fixed:
             cluster_delims = delimiters[cluster[0]]
             fmt_parts = [fmt_tokens[0]]
             for token, delim in zip(fmt_tokens[1:], cluster_delims):
@@ -99,92 +103,153 @@ def _stems_to_fmts(stems: list[str]) -> list[str]:
 
     return fmts
 
-def _is_extendable_variant(longer: str, shorter: str) -> str | None:
+def _align(longer_tokens: list[str], shorter_tokens: list[str]):
     """
-    Check if `shorter` and `longer` are compatible fmt strings, where `longer` 
-    has one additional token that can be removed to match `shorter`.
+    Find the best way to drop tokens from `longer_tokens` so its length
+    matches `shorter_tokens`, marking any position that differs between
+    them (literal mismatch or an existing parameter) for parameterization.
+
+    Returns:
+        (diff_positions, genuine_literal_match) or None if incompatible.
+    """
+    # double check that the longer fmt is actually longer than the shorter one
+    gap = len(longer_tokens) - len(shorter_tokens)
+    if gap < 0:
+        return None
+    
+    # list of every possible way to drop `gap` tokens from the longer fmt
+    candidates = []
+    # iterate over every combination of indices to drop from the longer fmt
+    for drop_set in combinations(range(len(longer_tokens)), gap):
+        # list of tokens from the longer fmt after dropping the selected indices
+        candidate = [tok for i, tok in enumerate(longer_tokens) if i not in drop_set]
+        genuine = False
+        # find the positions where the candidate and shorter fmt differ
+        diff_positions = set(drop_set)
+        # list of tokens that should stay in the longer fmt
+        kept_indices = [i for i in range(len(longer_tokens)) if i not in drop_set]
+        # compare the candidate tokens to the shorter fmt tokens
+        for k, (ct, st) in enumerate(zip(candidate, shorter_tokens)):
+            longer_idx = kept_indices[k]
+            # if either token is a parameter, mark this position for parameterization
+            if re.fullmatch(r"\{p\d+\}", ct) or re.fullmatch(r"\{p\d+\}", st):
+                diff_positions.add(longer_idx)
+                continue
+            # if the tokens are different, mark this position for parameterization
+            if ct != st:
+                diff_positions.add(longer_idx)
+            else:
+                genuine = True
+        # create a tuple of (num of diff positions, diff positions, match status)
+        candidates.append((len(diff_positions), diff_positions, genuine))
+
+    if not candidates:
+        return None
+    # find the candidate with the fewest differing positions
+    min_count = min(c[0] for c in candidates)
+    # find the best candidate(s) with the fewest differing positions and a match
+    best = [c for c in candidates if c[0] == min_count]
+    best = [c for c in best if c[2]] or best
+    # return the first best candidate's diff positions and match status
+    return best[0][1], best[0][2]
+
+
+def combine_alike_fmts(fmts: list[str]) -> list[str]:
+    """
+    Merge fmts that share at least one literal token into a single fmt.
+
+    For each group of fmts sharing a literal token, the longest fmt in
+    the group is used as the frame. Any position that differs across
+    the group's members (whether due to a literal mismatch or a token
+    count gap) becomes a new parameter; positions identical across the
+    entire group remain literal.
 
     Args:
-        longer: A fmt string with one more token than `shorter`.
-        shorter: A fmt string with one less token than `longer`.
+        fmts: List of fmt strings to merge.
 
-        Returns:
-            A new fmt string with the additional token in `longer` replaced by a
-            parameter placeholder, if the two fmt strings are compatible. Otherwise,
-            return None.
+    Returns:
+        List of fmt strings, with alike fmts combined into one.
     """
-    longer_tokens = re.split(_DELIM_PATTERN, longer)
-    shorter_tokens = re.split(_DELIM_PATTERN, shorter)
+    fmts = list(fmts)
+    result = []
+    used = [False] * len(fmts)
 
-    # if longer doesn't have a single extra token, they can't be compatible
-    if len(longer_tokens) != len(shorter_tokens) + 1:
-        return None
-    
-    # collect every compatible dropped position
-    candidates = []
-    # check each token position in the longer fmt for compatibility with the shorter fmt
-    for i in range(len(longer_tokens)):
-        # remove the token at index i from longer and compare to shorter
-        candidate = longer_tokens[:i] + longer_tokens[i + 1:]
-        compatible = True
-        param_positions = {i}
-        # check that every token in candidate matches the corresponding token in shorter
-        for k, (candidate_token, shorter_token) in enumerate(
-                zip(candidate, shorter_tokens)):
-            # correcting for the removed token index
-            longer_idx = k if k < i else k + 1
- 
-            # check if either token is already a parameter placeholder
-            if re.fullmatch(r"\{p\d+\}", candidate_token) or \
-                re.fullmatch(r"\{p\d+\}", shorter_token):
-                # track the index of the parameter placeholder
-                param_positions.add(longer_idx)
+    # tokenize every fmt once
+    tokens_cache = {idx: re.split(_DELIM_PATTERN, f) for idx, f in enumerate(fmts)}
+    literal_tokens_cache = {
+        idx: {t for t in tokens if not re.fullmatch(r"\{p\d+\}", t)}
+        for idx, tokens in tokens_cache.items()}
+
+    # for each fmt, find all other fmts that share at least one literal token
+    for i in range(len(fmts)):
+        # skip if this fmt has already been merged into a previous group
+        if used[i]:
+            continue
+        # group every fmt sharing at least one literal token with fmts[i]
+        group = [i]
+        # tokens for the current fmt, excluding any parameter tokens
+        i_tokens = literal_tokens_cache[i]
+        for j in range(len(fmts)):
+            # don't compare the fmt to itself or any fmt that has already been merged
+            if i == j or used[j]:
                 continue
-            # if the tokens are not equal, they are incompatible
-            if candidate_token != shorter_token:
-                compatible = False
-                break
-        if compatible:
-            # record the num of params, the index, and the positions
-            candidates.append((len(param_positions), i, param_positions))
-        # don't merge if it will result in a fmt with no fixed tokens
-    if not candidates:
-        # the shorter fmt is not a compatible variant of the longer fmt
-        return None
+            # tokens for the other fmt, excluding any parameter tokens
+            j_tokens = literal_tokens_cache[j]
+            # append to the group if the two fmts share at least one literal token
+            if i_tokens & j_tokens:
+                group.append(j)
 
-    # find the candidate with the fewest parameter placeholders
-    min_params = min(count for count, _, _ in candidates)
-    # only keep candidates with the minimum number of parameter placeholders
-    best = [c for c in candidates if c[0] == min_params]
-    # sort by the index of the dropped token in the longer fmt, descending
-    best.sort(key=lambda c: c[1], reverse=True)
-    # select the candidate with the highest dropped token index to keep leftmost tokens
-    _, _, param_positions = best[0]
- 
-    # safety check that they aren't the same length, meaning there is no variance
-    if len(param_positions) == len(longer_tokens):
-        return None    
-    
-    # rebuild the fmt string with the parameter placeholders renumbered
-    new_tokens = []
-    field_count = 0
-    for index, token in enumerate(longer_tokens):
-        # if we are at the removed token index or a parameter placeholder
-        if index in param_positions:
-            new_tokens.append(f"{{p{field_count}}}")
-            field_count += 1
-        else:
-            new_tokens.append(token)
- 
-    # get the delimiters from the longer fmt string to reconstruct the final fmt
-    delims = re.findall(_DELIM_PATTERN, longer)
-    tokens = [new_tokens[0]]
-    # reconstruct the fmt string with the delimiters in between the tokens
-    for token, delim in zip(new_tokens[1:], delims):
-        tokens.append(delim)
-        tokens.append(token)
-    return "".join(tokens)
+        # if the group only contains one fmt, it won't be merged with anything else
+        if len(group) == 1:
+            result.append(fmts[i])
+            used[i] = True
+            continue
 
+        # use the longest fmt in the group as the frame to align everything else
+        frame_idx = max(group, key=lambda idx: len(tokens_cache[idx]))
+        frame_tokens = tokens_cache[frame_idx]
+
+        # positions that differ to turn into parameters
+        all_diff_positions = set()
+        any_genuine = False
+        for idx in group:
+            # don't compare the frame to itself
+            if idx == frame_idx:
+                continue
+            # align the frame fmt to the other fmt, marking any differing positions
+            diff_positions, genuine = _align(frame_tokens, tokens_cache[idx])
+            # the union of previously differing positions and the new positions
+            all_diff_positions |= diff_positions
+            any_genuine = any_genuine or genuine
+
+        # no genuine matches or every position differs
+        if not any_genuine or len(all_diff_positions) == len(frame_tokens):
+            # append the frame fmt as-is, since it can't be merged with anything else
+            result.append(fmts[i])
+            used[i] = True
+            continue
+
+        new_tokens = []
+        param_count = 0
+        for idx, token in enumerate(frame_tokens):
+            # if this position differs across the group, make it a parameter
+            if idx in all_diff_positions:
+                new_tokens.append(f"{{p{param_count}}}")
+                param_count += 1
+            else:
+                new_tokens.append(token)
+        delims = re.findall(_DELIM_PATTERN, fmts[frame_idx])
+        parts = [new_tokens[0]]
+        for tok, delim in zip(new_tokens[1:], delims):
+            # reconstruct the fmt string with the delimiters in between the tokens
+            parts.append(delim)
+            parts.append(tok)
+        # append the merged fmt to the result list
+        result.append("".join(parts))
+        for idx in group:
+            used[idx] = True
+
+    return result
 
 def scan_inventory(root: Path) -> list[str]:
     """
@@ -226,9 +291,6 @@ def detect_fmt(root: Path) -> list[str]:
     root = Path(root).expanduser().resolve()
     inventory_files = scan_inventory(root)
 
-    drive_exts = {ext.lstrip(".").lower() for ext in DRIVE_EXTENSIONS}
-    meta_exts = {ext.lstrip(".").lower() for ext in META_EXTENSIONS}
-
     data_stems = []
     seen = set()
     for file in inventory_files:
@@ -238,7 +300,7 @@ def detect_fmt(root: Path) -> list[str]:
         stem = path.stem
 
         # skip any files that are known meta files or have known meta/drive extensions
-        if extension in drive_exts or extension in meta_exts:
+        if extension in DRIVE_EXTS_LOWER or extension in META_EXTS_LOWER:
             continue
         if stem.split(".")[0] in KNOWN_META_FILES:
             continue
@@ -247,11 +309,60 @@ def detect_fmt(root: Path) -> list[str]:
             seen.add(stem)
             data_stems.append(stem)
 
+    ### FMTS THAT MATCH A SINGLE ANCHOR TOKEN ###
+
+    stem_tokens_cache = {stem: re.split(_DELIM_PATTERN, stem) for stem in data_stems}
+    # find all files with one token that can be used as an anchor for fmt detection
+    anchors = [stem for stem in data_stems if len(stem_tokens_cache[stem]) == 1]
+    anchor_fmts = []
+    consumed = set()
+
+    for anchor in anchors:
+        # skip if this anchor has already been used by a previous anchor (identical)
+        if anchor in consumed:
+            continue
+        matches = []
+        for stem in data_stems:
+            # if there are no other parts besides the anchor
+            if stem == anchor or stem in consumed:
+                continue
+            tokens = stem_tokens_cache[stem]
+            # if the anchor is anywhere in the stem
+            if anchor in tokens:
+                matches.append(stem)
+        if not matches:
+            continue
+
+        # build the fmt from whichever match has the most extra tokens
+        longest = max(matches, key=len)
+        longest_tokens = stem_tokens_cache[longest]
+        longest_delims = re.findall(_DELIM_PATTERN, longest)
+        fmt_tokens = []
+        field_count = 0
+        for token in longest_tokens:
+            if token == anchor:
+                fmt_tokens.append(token)
+            else:
+                fmt_tokens.append(f"{{p{field_count}}}")
+                field_count += 1
+        fmt_parts = [fmt_tokens[0]]
+        # reconstruct the fmt string with the delimiters in between the tokens
+        for token, delim in zip(fmt_tokens[1:], longest_delims):
+            fmt_parts.append(delim)
+            fmt_parts.append(token)
+        anchor_fmts.append("".join(fmt_parts))        
+
+        consumed.add(anchor)
+        consumed.update(matches)
+
+    # remove any stems that have already been consumed by the anchor fmt detection
+    data_stems = [stem for stem in data_stems if stem not in consumed]
+
     # filter stems by token count to group them for fmt detection
     by_token_count: dict[int, list[str]] = {}
     for stem in data_stems:
         # split the stem up by delimiters
-        token_count = len(re.split(_DELIM_PATTERN, stem))
+        token_count = len(stem_tokens_cache[stem])
         # add the stem to the list of stems with the same token count
         by_token_count.setdefault(token_count, []).append(stem)
 
@@ -259,31 +370,9 @@ def detect_fmt(root: Path) -> list[str]:
     for token_count, same_count_stems in sorted(by_token_count.items()):
         # create the fmt strings for each group of stems with the same token count
         group_fmts.extend(_stems_to_fmts(same_count_stems))
-        
-    # merge fmts that are the same except for an optional param
-    group_fmts.sort(key=lambda f: len(re.split(_DELIM_PATTERN, f)), reverse=True)
-    merged = []
-    # check if the fmt has already been merged to avoid duplicates
-    used = [False] * len(group_fmts)
-    for i, longer in enumerate(group_fmts):
-        if used[i]:
-            continue
-        current = longer
-        for j, shorter in enumerate(group_fmts):
-            # skip if the fmt is the same or has already been merged
-            if i == j or used[j]:
-                continue
-            # check if the shorter fmt is an extendable variant of the current fmt
-            extended = _is_extendable_variant(current, shorter)
-            if extended is not None:
-                current = extended
-                used[j] = True
-        merged.append(current)
-        used[i] = True
 
-    fmts = []
-    for fmt in merged:
-        # avoid adding duplicate fmts to the final list
-        if fmt not in fmts:
-            fmts.append(fmt)
-    return fmts
+    fmts = combine_alike_fmts(group_fmts)
+    # only keep fmts that have at least 1 parameter        
+    fmts = [f for f in fmts if re.search(r"\{p\d+\}", f)]   
+
+    return anchor_fmts + fmts
