@@ -495,8 +495,9 @@ class Repo:
 
     def add_worktree(self, target_branch: str) -> bool:
         '''
-        Create or link a new worktree for a branch. Raises ValueError if branch name is invalid.
-        Rasies Runtime error if called in a bare repository or worktree creation fails.
+        Create or link a new worktree for a branch. Raises ValueError if branch name 
+        is invalid.
+        Raises RuntimeError if called in a bare repository or worktree creation fails.
         
         Args:
             target_branch (string): Name of the branch to attach.
