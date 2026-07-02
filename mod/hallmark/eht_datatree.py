@@ -230,7 +230,6 @@ def _build_data_branches(root: Path, fmt: str | list[str] | None,
     # for every fmt and its stem dict
     for fmt_str, stems in fmt_stems.items():
         fmt_dict = {}
-        all_rows = []
         # loop thru every stem for this fmt
         for stem_key, rows in stems.items():
             # create a Paraframe for each different stem
@@ -322,7 +321,8 @@ def build_tree(root: Path, fmt: str | list[str] | None = None, data_type: str = 
 
         if repeated_names:
             # find the rows in the meta ParaFrame that have repeated names
-            is_repeated = meta_pf["path"].apply(lambda p: Path(p).name in repeated_names)
+            is_repeated = meta_pf["path"].apply(lambda p: 
+                                                Path(p).name in repeated_names)
             repeated_rows = meta_pf[is_repeated]
             # remove the repeated rows from the meta ParaFrame to avoid double counting
             meta_pf = meta_pf[~is_repeated]

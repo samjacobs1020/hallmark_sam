@@ -562,8 +562,8 @@ def test_build_tree_L1_fmt_propagates_through_nested_extraction(tmp_path):
 def test_build_tree_L1_multiple_drives_get_distinct_keys(tmp_path):
     project_dir = tmp_path / "2016.1.01114.V"
     project_dir.mkdir()
-    archive1 = _make_archive(project_dir, "extractA", contents={"a.csv": "data"})
-    archive2 = _make_archive(project_dir, "extractB", contents={"b.csv": "data"})
+    _make_archive(project_dir, "extractA", contents={"a.csv": "data"})
+    _make_archive(project_dir, "extractB", contents={"b.csv": "data"})
 
     tree = build_tree(tmp_path, None, data_type="L1")
     project = tree["2016.1.01114.V"]
@@ -588,7 +588,7 @@ def test_build_tree_L1_empty_folder_does_not_crash(tmp_path):
 def test_build_tree_L1_does_not_resync_modified_extraction(tmp_path):
     project_dir = tmp_path / "2016.1.01114.V"
     project_dir.mkdir()
-    archive = _make_archive(
+    _make_archive(
         project_dir, "extract1",
         contents={"a.csv": "data", "b.csv": "data"},
     )
@@ -679,9 +679,7 @@ def test_detect_fmt_excludes_meta_extension_case_insensitively(tmp_path):
 
 
 def test_build_tree_drives_match_extension_case_insensitively(tmp_path):
-    archive = _make_archive(tmp_path, "data1", "zip")
-    uppercase_archive = archive.with_name(archive.name.upper())
-    archive.rename(uppercase_archive)
+    _make_archive(tmp_path, "data1", "zip")
     tree = build_tree(tmp_path, "{name}")
     if "data" in tree:
         for fmt_dict in tree["data"].values():

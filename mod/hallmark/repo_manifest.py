@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import parse
 import pandas as pd
 
 from .repo_config import fmt_fields, row_to_path

@@ -1,4 +1,3 @@
-from pathlib import Path
 import pytest
 from hallmark.fmt_detection import (
     scan_inventory, detect_fmt, _stems_to_fmts, combine_alike_fmts,
