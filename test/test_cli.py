@@ -16,7 +16,6 @@
 import os
 from pathlib        import Path
 from contextlib     import contextmanager
-from unittest import runner
 from click.testing  import CliRunner
 from git import Repo as GitRepo
 
